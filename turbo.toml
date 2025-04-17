@@ -1,0 +1,8 @@
+name = "turbo-incremental"
+version = "0.1.0"
+author = "Anonymous"
+description = "An awesome game made in Turbo!"
+
+[canvas]
+width = 640
+height = 640
