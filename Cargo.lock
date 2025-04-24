@@ -314,9 +314,9 @@ dependencies = [
 
 [[package]]
 name = "turbo-genesis-sdk"
-version = "2.2.2"
+version = "3.0.0-alpha.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89c38cc39a30b85398d16a7056b6141f72ee72695c8e2663b20c638c4e731022"
+checksum = "f914d40207358c62a623bee43c8c98def9fd42c1cedd3684dd8acc70015cf23b"
 dependencies = [
  "base64",
  "borsh",
@@ -332,6 +332,7 @@ dependencies = [
 name = "turbo-incremental"
 version = "0.1.0"
 dependencies = [
+ "once_cell",
  "turbo-genesis-sdk",
 ]
 
