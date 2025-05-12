@@ -5,59 +5,131 @@ use once_cell::sync::Lazy;
 pub struct Upgrade {
     pub name: String,
     pub description: String,
-    pub cost: (Resources, u32),
+    pub cost: Vec<(Resources, u64)>,
     pub unlocks: Vec<usize>, // Which index of the upgrade tree this upgrade leads to
-    pub limited: bool,
+    pub level: u32,
+    pub max_level: u32,
 
     // Drawing variables
     pub entry: Btn,
     pub buy_button: Btn,
-    pub tooltip: Bounds,
+    pub tooltip: TextBox,
     pub hovered: bool,
+    pub display_lvl: bool,
+
+    // Function to calculate the cost of the upgrade based on level
+    pub base_cost: Vec<(Resources, u64)>,
+    pub cost_formula: CostFormula,
+}
+
+#[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
+pub enum CostFormula {
+    None,
+    Double,
+    Exponential,
+}
+impl CostFormula {
+    pub fn calculate_cost(&self, base_cost: Vec<(Resources, u64)>, n: u32) -> Vec<(Resources, u64)> {
+        match self {
+            CostFormula::None => {
+                base_cost
+            }
+            CostFormula::Double => {
+                let mut new_cost = vec![];
+                for cost in base_cost.iter() {
+                    let prod = cost.1 * (2u64.pow(n));
+                    new_cost.push((cost.0.clone(), prod));
+                }
+                new_cost
+            }
+            CostFormula::Exponential => {
+                let mut new_cost = vec![];
+                for cost in base_cost.iter() {
+                    let prod = (cost.1 as f64 * (1.2f64).powi(n as i32)).ceil() as u64;
+                    new_cost.push((cost.0.clone(), prod));
+                }
+                new_cost
+            }
+        }
+    }
 }
 
 impl Upgrade {
-    pub fn init(&mut self, pop_up: Bounds, index: usize) {
+    pub fn add_upgrade(mut_list: &mut Vec<Upgrade>, upgrade_list: &Lazy<Vec<Upgrade>>, index: usize, pop_up: Bounds) {
+        if index < upgrade_list.len() {
+            let mut upgrade = upgrade_list[index].clone();
+            upgrade.init(pop_up, mut_list.len());
+            mut_list.push(upgrade);
+        }
+    }
+
+    pub fn init(&mut self, pop_up: Bounds, index: usize) -> Self {
+        let h = 
+            if self.cost.len() > 0 { self.cost.len() as i32 * 20 }
+            else { 20 };
         self.entry.clickable = false;
         self.entry.fixed = true;
-        self.entry.bounds = pop_up.inset(4);
-        self.entry.bounds = self.entry.bounds.height(18);
+        self.entry.bounds = pop_up
+            .inset(4)
+            .height(h);
 
         self.buy_button.interactable = false;
-        self.buy_button.bounds = self.buy_button.bounds.height(13);
-        self.buy_button.bounds = self.buy_button.bounds.width(20);
-        
-        self.tooltip = self.tooltip.width(128);
-        self.tooltip = self.tooltip.height(96);
+        self.buy_button.bounds = self.buy_button.bounds
+            .height(15)
+            .width(15);
+
+        self.tooltip = TextBox::new(self.description.clone(), 0);
+
         self.array(pop_up, index);
+        return self.clone();
     }
 
     pub fn array(&mut self, bounds: Bounds, index: usize) {
         self.entry.bounds = self.entry.bounds.position(
             bounds.x() + 4,
-            16 + bounds.y() + 4 + index as i32 * (self.entry.bounds.h() as i32) as i32,
+            24 + bounds.y() + index as i32 * 20,
         );
 
-        self.buy_button.bounds = self.buy_button.bounds.anchor_right(&self.entry.bounds);
-        self.buy_button.bounds = self.buy_button.bounds.translate_x(-48);
-        self.buy_button.bounds = self.buy_button.bounds.anchor_center_y(&self.entry.bounds);
+        self.buy_button.bounds = self.buy_button.bounds
+            .anchor_right(&self.entry.bounds)
+            .translate_x(-64)
+            .anchor_center_y(&self.entry.bounds);
 
-        self.tooltip = self.tooltip.position(
-            if bounds.x() >= 320 { bounds.left() - self.tooltip.w() as i32 - 4 } else { bounds.right() + 4 },
-            bounds.center_y() - 48,
-        );
+        self.tooltip.update(self.entry.bounds, 8);
     }
 
 
-    pub fn update(&mut self, resources: u32) {
+    pub fn update(&mut self, resources: &Vec<(Resources, u64)>) {
         self.entry.update();
         self.hovered = self.entry.state == BtnState::Hovered;
 
-        if resources >= self.cost.1 {
-            self.buy_button.interactable = true;
-        } else {
-            self.buy_button.interactable = false;
+        let mut buyable = false;
+        if self.level < self.max_level {
+            buyable = true;
+            let mut has_resources = true;
+            for cost in self.cost.iter() {
+                if resources.len() == 0 {
+                    buyable = false;
+                } else {
+                    let mut found = false;
+                    for resource in resources.iter() {
+                        if resource.0 == cost.0 {
+                            found = true;
+                            if resource.1 < cost.1 {
+                                buyable = false;
+                            }
+                        } 
+                    }
+                    if !found {
+                        has_resources = false;
+                    }
+                }
+            }
+            if !has_resources {
+                buyable = false;
+            }
         }
+        self.buy_button.interactable = buyable;
 
         self.buy_button.update();
     }
@@ -66,196 +138,42 @@ impl Upgrade {
         self.buy_button.on_click()
     }
 
+    pub fn next_level(&mut self) -> bool {
+        self.level += 1;
+        if self.level >= self.max_level {
+            //self.entry.interactable = false;
+            self.level = self.max_level;
+            self.buy_button.interactable = false;
+            return true;
+        } else {
+            self.cost = self.cost_formula.calculate_cost(self.base_cost.clone(), self.level);
+        }
+        false
+    }
+
     pub fn draw(&self, ) {
         self.entry.draw();
-        text!("{}", self.name; fixed = true, x = self.entry.bounds.x() + 4, y = self.entry.bounds.center_y() - 4);
+        let mut t = format!("{}", self.name);
+        if self.display_lvl {
+            t = format!("{} LVL {}", self.name, self.level + 1);
+        }
+        text!(&t, fixed = true, x = self.entry.bounds.x() + 4, y = self.entry.bounds.center_y() - 4);
         
-        self.buy_button.draw();
+        if self.level < self.max_level {
+            self.buy_button.draw();
+            let mut i = 0;
+            for (resource, amount) in self.cost.iter() {
+                let sprite = format!("{}", resource);
+                sprite!(&sprite, fixed = true, x = self.entry.bounds.right() - 58, y = i * 20 + self.entry.bounds.y() + 2, wh = (16, 16), color = 0xffffffff);
+                let abbr = Numbers::format(amount.clone());
+                text!("{}", abbr; fixed = true, x = self.entry.bounds.right() as i32 - 38, y = i * 20 + self.entry.bounds.y() + 6);
+                i += 1;
+            }
+        }
 
-        let sprite = format!("{}", self.cost.0);
-        sprite!(&sprite, fixed = true, x = self.entry.bounds.right() - 42, y = self.entry.bounds.center_y() - 8, wh = (16, 16), color = 0xffffffff);
-        text!("{}", self.cost.1; fixed = true, x = self.entry.bounds.right() as i32 - 26, y = self.entry.bounds.center_y() - 4);
 
         if self.hovered {
-            rect!(fixed = true, xy = self.tooltip.xy(), wh = self.tooltip.wh(), border_size = 1, border_radius = 4, color = 0x222034ff, border_color = 0xffffffff);
-            text!("{}", self.description; fixed = true, xy = (self.tooltip.x() + 4, self.tooltip.y() + 4), color = 0xffffffff);
+            self.tooltip.draw();
         }
     }
 }
-
-pub static EXOPLANET_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
-    Upgrade {
-        name: "FIELD SCANNER".to_string(),
-        description: "Increase the amount of research gained by pressing the Exoplanet by 100%.".to_string(),
-        cost: (Resources::Research, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![1],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "FIELD SCANNER 02".to_string(),
-        description: "Increase the amount of research gained by pressing the Exoplanet by 100%.".to_string(),
-        cost: (Resources::Research, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![2],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "FIELD SCANNER 03".to_string(),
-        description: "Increase the amount of research gained by pressing the Exoplanet by 100%.".to_string(),
-        cost: (Resources::Research, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![3],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "FIELD SCANNER 04".to_string(),
-        description: "Increase the amount of research gained by pressing the Exoplanet by 100%.".to_string(),
-        cost: (Resources::Research, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "DEPLOY SURVEY DRONE".to_string(),
-        description: "Assign a DRONE to collect RESEARCH.".to_string(),
-        cost: (Resources::Drones, 1),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: false,
-        unlocks: vec![],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "ADV. SENSORS 01".to_string(),
-        description: "Increase the amount of research gained by pressing the Exoplanet by 100%.".to_string(),
-        cost: (Resources::Metals, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![6],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "ADV. SENSORS 02".to_string(),
-        description: "Increase the amount of research gained by pressing the Exoplanet by 100%.".to_string(),
-        cost: (Resources::Metals, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![7],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "ADV. SENSORS 03".to_string(),
-        description: "Increase the amount of research gained by pressing the Exoplanet by 100%.".to_string(),
-        cost: (Resources::Metals, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-]);
-
-pub static DEPOT_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
-    Upgrade {
-        name: "CONSTRUCT".to_string(),
-        description: "Increase the amount of RESEARCH gained by pressing the Exoplanet by 100%.".to_string(),
-        cost: (Resources::Research, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![1],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "DRONE SHIPMENT".to_string(),
-        description: "Exchange RESEARCH for a DRONE.".to_string(),
-        cost: (Resources::Research, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        buy_button: Btn::buy(),
-        limited: false,
-        unlocks: vec![],
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "FIELD SCANNER 03".to_string(),
-        description: "Increase the amount of RESEARCH gained by pressing the Exoplanet by 100%.".to_string(),
-        cost: (Resources::Research, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-]);
-
-pub static MINES_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
-    Upgrade {
-        name: "CONSTRUCT".to_string(),
-        description: "Construct ASTEROID MINES.".to_string(),
-        cost: (Resources::Research, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![1],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "DEPLOY MINING DRONE".to_string(),
-        description: "Assign a DRONE to collect METALS.".to_string(),
-        cost: (Resources::Drones, 1),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: false,
-        unlocks: vec![],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-]);
-
-pub static POWER_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
-    Upgrade {
-        name: "CONSTRUCT".to_string(),
-        description: "Construct POWER PLANT.".to_string(),
-        cost: (Resources::Research, 10),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: true,
-        unlocks: vec![1],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-    Upgrade {
-        name: "DEPLOY CONDUIT DRONE".to_string(),
-        description: "Assign a DRONE to collect POWER.".to_string(),
-        cost: (Resources::Drones, 1),
-        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
-        limited: false,
-        unlocks: vec![],
-        buy_button: Btn::buy(),
-        tooltip: Bounds::new(-320, -320, 0, 0),
-        hovered: false,
-    },
-]);

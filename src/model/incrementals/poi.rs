@@ -5,11 +5,11 @@ pub trait POI {
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
 
-    fn manual_produce(&mut self) -> u32 {
+    fn manual_produce(&mut self) -> u64 {
         return 0;
     }
 
-    fn produce(&mut self) -> u32 {
+    fn produce(&mut self) -> u64 {
         return 0;
     }
 

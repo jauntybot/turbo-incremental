@@ -1,9 +1,12 @@
 use super::*;
 
+pub const PLANT_BOX: (i32, i32, i32, i32) = (576, 64, 64, 64);
+
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct PowerPlant {
     pub drones: Vec<Drone>,
     pub drone_level: u32,
+    pub drone_speed: u32,
 
     pub unlockable: bool,
     unlocked: bool,
@@ -20,12 +23,12 @@ pub struct PowerPlant {
 }
 impl PowerPlant {
     pub fn load() -> Self {
-        let hitbox = Bounds::new(448, 128, 64, 64);
+        let hitbox = Bounds::new(PLANT_BOX.0, PLANT_BOX.1, PLANT_BOX.2, PLANT_BOX.3);
         let pop_up =  PopUp::new("POWER PLANT".to_string());
         PowerPlant {
             drones: vec![],
-            drone_level: 1,
-
+            drone_level: 0,
+            drone_speed: 0,
             unlockable: false,
             unlocked: false,
 
@@ -41,7 +44,7 @@ impl PowerPlant {
         }
     }
 
-    pub fn update(&mut self, player: &mut Player, event_manager: &mut EventManager) {
+    pub fn update(&mut self, player: &mut Player, event_manager: &mut EventManager, nebula: &mut NebulaStorm) {
         // Update pop up position and buttons, apply upgrades
         if self.hovered {
             if let Some(upgrade) = self.pop_up.update(self.hitbox, &mut self.avail_upgrades, &POWER_UPGRADES, &player.resources) {
@@ -70,7 +73,18 @@ impl PowerPlant {
             self.clicked_at = tick();
         }
 
-        produced.1 +=  self.produce();
+        for drone in self.drones.iter_mut() {
+            if drone.conduit(nebula) {
+                let amount =  (1.0 + self.drone_level as f32 * 0.55) as u64 * 3;
+                produced.1 += amount;
+                self.collections.push(
+                    Collection::new(
+                        nebula.bolts[nebula.bolts.len() - 1].segments[nebula.bolts[nebula.bolts.len() - 1].segments.len() - 1].end,
+                        (Resources::Power, amount)
+                    )
+                );
+            }
+        }
         
         // Update collection numbers
         self.collections.retain_mut(|collection| {
@@ -87,7 +101,7 @@ impl PowerPlant {
         match event {
             Event::PowerPlantUnlockable => {
                 self.unlockable = true;
-                self.avail_upgrades.push(POWER_UPGRADES[0].clone());
+                Upgrade::add_upgrade(&mut self.avail_upgrades, &POWER_UPGRADES, 0, self.pop_up.panel);
             }
             _ => {}
         }
@@ -114,12 +128,13 @@ impl PowerPlant {
         }
 
         // main GFX
-        rect!(
-            xy = self.hitbox.xy(), 
-            wh = self.hitbox.wh(), 
-            border_radius = 4,
-            color = 0xac3232ff
-        );
+        // rect!(
+        //     xy = self.hitbox.xy(), 
+        //     wh = self.hitbox.wh(), 
+        //     border_radius = 4,
+        //     color = 0xac3232ff
+        // );
+        sprite!("mines", xy = self.hitbox.xy());
 
         // Draw drones
         for drone in self.drones.iter() {
@@ -131,15 +146,17 @@ impl PowerPlant {
         if !self.unlocked { 
             text!("LOCKED", xy = (self.hitbox.x() + 4, self.hitbox.y() + 4), color = 0xffffffff);       
         }
-        
-        // pop up
-        if self.hovered {
-            self.pop_up.draw(&self.avail_upgrades);
-        }
 
         // Draw collection numbers
         for collection in self.collections.iter() {
             collection.draw();
+        }
+    }
+
+    pub fn draw_ui(&self) {
+        // pop up
+        if self.hovered {
+            self.pop_up.draw(&self.avail_upgrades);
         }
     }
 }
@@ -154,24 +171,35 @@ impl POI for PowerPlant {
         self
     }
 
-    fn produce(&mut self) -> u32 {
+    fn produce(&mut self) -> u64 {
         let mut produced = 0;
-        for drone in self.drones.iter_mut() {
-            if drone.update() {
-                let amount =  self.drone_level * 2;
-                produced += amount;
-                self.collections.push(Collection::new(drone.pos, (Resources::Power, amount)));
-            }
-        }
+
         produced
     }
 
     fn upgrade(&mut self, upgrade: &Upgrade, event_manager: &mut EventManager) {
         if upgrade.name == "CONSTRUCT" {
             self.unlocked = true;
+            event_manager.trigger(Event::UnlockPowerPlant);
         } else if upgrade.name.starts_with("DEPLOY") {
-            self.drones.push(Drone::new(DroneMode::Conduit, self.drone_level));
+            let xy = self.hitbox.translate(self.hitbox.w()/2,self.hitbox.h()/2).xy();
+            self.drones.push(Drone::new(DroneMode::Conduit, self.drone_level, self.drone_speed, xy));
             self.pop_up.drones += 1;
+            if self.drones.len() == 1 {
+                event_manager.trigger(Event::LateGame);
+            }
+        }
+        else if upgrade.name.starts_with("REFLECT") {
+            self.drone_level += 1;
+            for drone in self.drones.iter_mut() {
+                drone.level += 1;
+            }
+        }
+        else if upgrade.name.starts_with("ARC") {
+            self.drone_speed += 1;
+            for drone in self.drones.iter_mut() {
+                drone.speed += 1;
+            }
         }
     }
 }

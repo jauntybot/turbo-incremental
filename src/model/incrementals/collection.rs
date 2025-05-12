@@ -5,16 +5,22 @@ pub struct Collection {
     pub is_active: bool,
     created_at: usize,
     pos: (f32, f32),
-    value: (Resources, u32),
+    value: (Resources, u64),
+    positive: bool,
 }
 
 impl Collection {
-    pub fn new(pos: (f32, f32), value: (Resources, u32)) -> Self {
+    pub fn new(pos: (f32, f32), value: (Resources, u64)) -> Self {
+        Collection::new_detail(pos, value, true)
+    }
+
+    pub fn new_detail(pos: (f32, f32), value: (Resources, u64), positive: bool) -> Self {
         Self {
             is_active: true,
             created_at: tick(),
             pos,
             value,
+            positive,
         }
     }
 
@@ -39,6 +45,9 @@ impl Collection {
         let sprite = format!("{}", self.value.0);
 
         sprite!(&sprite, xy = self.pos, wh = (16, 16));
-        text!("{}", self.value.1; font = "large", x = self.pos.0 + 16., y = self.pos.1 + 4., color = 0xffffffff);
+        let mut amount = Numbers::format(self.value.1);
+        if !self.positive { amount = format!("-{}", amount); }
+        let color: u32 = if !self.positive { 0xff0000ff } else { 0xffffffff };
+        text!(&amount, font = "large", x = self.pos.0 + 16., y = self.pos.1 + 4., color = color);
     }
 }

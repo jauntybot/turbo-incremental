@@ -17,10 +17,10 @@ impl BtnState {
                 BtnState::Pressed => (0x847e87ff, 0xffffffff, 0x9badb7ff),
             },
             _ => match self {
-                BtnState::Disabled => (0x847e87ff, 0x9badb7ff, 0xffffffff),
-                BtnState::Normal => (0x9badb7ff, 0x847e87ff, 0xffffffff),
-                BtnState::Hovered => (0x847e87ff, 0x9badb7ff, 0xffffffff),
-                BtnState::Pressed => (0x847e87ff, 0xffffffff, 0x9badb7ff),
+                BtnState::Disabled => (0x222034ff, 0x222034ff, 0x847e87ff),
+                BtnState::Normal => (0x222034ff, 0xffffffff, 0xffffffff),
+                BtnState::Hovered => (0xffffffff, 0x222034ff, 0x222034ff),
+                BtnState::Pressed => (0xffffffff, 0xffffffff, 0x222034ff),
             }
         }
     }
@@ -31,12 +31,13 @@ impl BtnState {
 pub struct Btn {
     pub bounds: Bounds,
     pub state: BtnState,
-    string: String,
+    pub string: String,
     text: bool,
     pub interactable: bool,
     pub clickable: bool,
     pub colors_index: u32,
     pub fixed: bool,
+    font: String,
 }
 
 impl Btn {
@@ -49,7 +50,8 @@ impl Btn {
             interactable: true,
             clickable: true,
             colors_index,
-            fixed: false,
+            fixed: true,
+            font: "medium".to_string(),
         }
     }
 
@@ -57,12 +59,13 @@ impl Btn {
         Self {
             bounds: Bounds::new(0, 0, 0, 0),
             state: BtnState::Normal,
-            string: "BUY".to_string(),
-            text: true,
+            string: "+".to_string(),
+            text: false,
             interactable: false,
             clickable: true,
             colors_index: 1,
             fixed: true,
+            font: "medium".to_string(),
         }
     }
 
@@ -107,7 +110,21 @@ impl Btn {
         );
         
         if self.text {
-            text!(&self.string, fixed = self.fixed, x = self.bounds.center_x() - self.string.len() as i32 * 2 - 1, y = self.bounds.center_y() - 3);
+            text!(
+                &self.string,
+                fixed = self.fixed, 
+                x = self.bounds.center_x() - self.string.len() as i32 * 2 - 1, 
+                y = self.bounds.center_y() - 4,
+                color = colors.2,
+                font = "medium",
+            );
+        } else {
+            sprite!(
+                &self.string,
+                fixed = self.fixed, 
+                xy = self.bounds.xy(),
+                color = colors.2
+            )
         }
     }
 }
