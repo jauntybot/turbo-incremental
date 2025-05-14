@@ -86,11 +86,14 @@ impl DroneDepot {
     pub fn update(&mut self, player: &mut Player, event_manager: &mut EventManager) {
         let p = pointer();
         let rp = p.relative_position();
-        self.hovered = 
-            self.hitbox.intersects_xy(rp) 
-            || (self.hovered && self.pop_up.hovered()) 
-            || (self.fabricator_unlocked && self.hovered && self.fabricator.hovered()); 
-
+        if event_manager.dialogue.is_none() {
+            self.hovered = 
+                self.hitbox.intersects_xy(rp) 
+                || (self.hovered && self.pop_up.hovered()) 
+                || (self.fabricator_unlocked && self.hovered && self.fabricator.hovered()); 
+        } else {
+            self.hovered = false;
+        }
         // Update pop up position and buttons, apply upgrades
         if self.hovered {
             let z = camera::z() as i32;
@@ -169,7 +172,8 @@ impl DroneDepot {
                 xy = self.hitbox.xy(), 
             );
             if !self.unlocked { 
-                text!("LOCKED", xy = (self.hitbox.x() + 4, self.hitbox.y() + 4), color = 0xffffffff);       
+                rect!(xy = self.hitbox.translate(-32, -6).center(), wh = (64, 12), color = 0x222034ff);
+                text!("LOCKED", xy = self.hitbox.translate(-15,-3).center(), color = 0xffffffff);       
             }
         } else {
             sprite!{

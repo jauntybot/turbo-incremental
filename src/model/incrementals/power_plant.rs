@@ -56,8 +56,11 @@ impl PowerPlant {
         // Hover check
         let p = pointer();
         let rp = p.relative_position();
-        self.hovered = self.hitbox.intersects_xy(rp) || (self.hovered && self.pop_up.hovered()); 
-        
+        if event_manager.dialogue.is_none() {
+            self.hovered = self.hitbox.intersects_xy(rp) || (self.hovered && self.pop_up.hovered()); 
+        } else {
+            self.hovered = false;
+        }
         // Produce Resources
         let mut produced = (Resources::Power, 0);
         
@@ -142,9 +145,10 @@ impl PowerPlant {
                 drone.draw();
             }
         }
-
+        
         if !self.unlocked { 
-            text!("LOCKED", xy = (self.hitbox.x() + 4, self.hitbox.y() + 4), color = 0xffffffff);       
+            rect!(xy = self.hitbox.translate(-32, -6).center(), wh = (64, 12), color = 0x222034ff);
+            text!("LOCKED", xy = self.hitbox.translate(-15,-3).center(), color = 0xffffffff);       
         }
 
         // Draw collection numbers
