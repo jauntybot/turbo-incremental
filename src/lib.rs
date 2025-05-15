@@ -1,4 +1,6 @@
 mod model;
+use std::fmt::Error;
+
 pub use model::*;
 
 turbo::init!(
@@ -13,12 +15,12 @@ turbo::init!(
         power_plant: PowerPlant,
         jumpgate: Jumpgate,
         research_complex: ResearchComplex,
-    } = GameState::new()
+    } = GameState::load_local()
 );
 
 impl GameState {
     pub fn new() -> Self {
-        GameState {  
+        let state = GameState {  
             player: Player::load(),
             event_manager: EventManager::new(),
             exoplanet: Exoplanet::load(),
@@ -29,8 +31,34 @@ impl GameState {
             power_plant: PowerPlant::load(),
             jumpgate: Jumpgate::load(),
             research_complex: ResearchComplex::load(),
+        };
+        state.save_local();
+        state
+    }
+
+    pub fn save_local(&self) {
+        let data = self.try_to_vec();
+        if let Ok(d) = data {
+            let _ = local::save(&d);
+        } else {
+            log!("error saving");
         }
     }
+
+    pub fn load_local() -> GameState {
+        let data = local::load().unwrap_or_else(|_| vec![]);
+        GameState::try_from_slice(&data).unwrap_or_else(|_| GameState::new())
+    }
+
+    pub fn handle_event(&mut self, event: &Event) {
+        match event {
+            Event::SaveGame => {
+                self.save_local();
+            }
+            _ => {}
+        }
+    }
+
 }
 
 // This is where your main game loop code goes
@@ -44,26 +72,25 @@ turbo::go! ({
             sprite!("bg", xy = (x * 640, -80 + y * 640));
         }
     }
-    //sprite!("bg", xy = (0, -80));
-    rect!(xy = (0, 0), wh = (640, 480), border_size = 1, color = 0xffffff00, border_color = 0xffffffff);
+    text!("pos: ({}, {}), target: ({}, {}), last: ({}, {})", state.player.camera.pos.0, state.player.camera.pos.1, camera::x(), camera::y(), state.player.camera.last_pointer_pos.0, state.player.camera.last_pointer_pos.1; fixed = true, y = 28);
+    //rect!(xy = (0, 0), wh = (640, 400), border_size = 1, color = 0xffffff00, border_color = 0xffffffff);
     if state.event_manager.dialogue.is_none() {
         state.player.update();
     }
+    state.asteroid_field.update();
+    state.asteroid_field.draw();
+    state.nebula_storm.update();
 
     state.exoplanet.update(&mut state.player, &mut state.event_manager);
     state.exoplanet.draw();
-    if state.drone_depot.unlockable {
-        state.drone_depot.update(&mut state.player, &mut state.event_manager);
-    }
-    state.drone_depot.draw();
-    state.asteroid_field.update();
-    state.asteroid_field.draw();
     if state.asteroid_mines.unlockable {
         state.asteroid_mines.update(&mut state.player, &mut state.event_manager, &mut state.asteroid_field);
         state.asteroid_mines.draw();
     }
-    state.nebula_storm.update();
-    //state.nebula_storm.draw();
+    if state.drone_depot.unlockable {
+        state.drone_depot.update(&mut state.player, &mut state.event_manager);
+    }
+    state.drone_depot.draw();
     if state.power_plant.unlockable {
         state.power_plant.update(&mut state.player, &mut state.event_manager, &mut state.nebula_storm);
         state.power_plant.draw();
@@ -77,11 +104,9 @@ turbo::go! ({
         state.research_complex.draw();
     }
 
-    sfx.update();
-
-
     // Event subscribers
     state.event_manager.process_events(|event| {
+        //state.handle_event(event);
         state.exoplanet.handle_event(event);
         state.drone_depot.handle_event(event);
         state.asteroid_mines.handle_event(event);
@@ -90,6 +115,8 @@ turbo::go! ({
         state.research_complex.handle_event(event);
     });
     
+    sfx.update(&mut state);
+
     state.player.draw();
 
     state.exoplanet.draw_ui();
@@ -100,8 +127,11 @@ turbo::go! ({
     sfx.draw();
 
     if state.event_manager.dialogue.is_some() {
-        state.event_manager.update();
+        state.event_manager.update(&mut state.player);
     }
 
+    if sfx.autosave && tick() % 1000 == 0 {
+        state.save_local();
+    }
     state.save();
 });

@@ -24,6 +24,9 @@ pub use numbers::*;
 mod player;
 pub use player::*;
 
+mod pois;
+pub use pois::*;
+
 mod sfx;
 pub use sfx::*;
 

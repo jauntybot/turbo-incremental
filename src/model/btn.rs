@@ -71,7 +71,7 @@ impl Btn {
 
     pub fn on_click(&self) -> bool {
         let p = pointer();
-        let pp = if self.fixed { p.fixed_position() } else { p.relative_position() };
+        let pp = if self.fixed { p.xy_fixed() } else { p.xy() };
 
         return self.interactable 
             && self.clickable 
@@ -81,7 +81,7 @@ impl Btn {
 
     pub fn update(&mut self) {
         let p = pointer();
-        let pp = if self.fixed { p.fixed_position() } else { p.relative_position() };
+        let pp = if self.fixed { p.xy_fixed() } else { p.xy() };
 
         if self.interactable {
             if self.clickable && self.bounds.intersects_xy(pp) && p.pressed(){
@@ -113,7 +113,7 @@ impl Btn {
             text!(
                 &self.string,
                 fixed = self.fixed, 
-                x = self.bounds.center_x() - self.string.len() as i32 * 2 - 1, 
+                x = self.bounds.center_x() as f32 - self.string.len() as f32 * 2.5 - 1.0, 
                 y = self.bounds.center_y() - 4,
                 color = colors.2,
                 font = "medium",

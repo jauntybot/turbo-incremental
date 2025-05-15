@@ -5,14 +5,17 @@ pub struct CameraCtrl {
     pub zoom_tick: usize,
     dragging: bool,
     pub last_pointer_pos: (i32, i32),
-    velocity: (i32, i32), 
+    pub pos: (i32, i32),
+    pub velocity: (i32, i32), 
 }
 impl CameraCtrl {
     pub fn load() -> Self {
+        camera::set_xy(320, 200);
         CameraCtrl {
             zoom_tick: 0,
             dragging: false,
             last_pointer_pos: (0, 0),
+            pos: (320, 200),
             velocity: (0, 0), // Initialize velocity to zero
         }
     }
@@ -22,24 +25,31 @@ impl CameraCtrl {
         let p = pointer();
         let move_speed = 3;
 
+        let mut moved = false;
         if gp.left.pressed() { //&& camera::x() > 0.0 {
-            camera::move_x(-move_speed);
-            //if camera::x() < 0.0 { camera::set_x(0.0); }
+            self.pos.0 -= move_speed;
+            moved = true;
         } 
         if gp.right.pressed() { //&& camera::x() < 640. {
-            camera::move_x(move_speed);
-            //if camera::x() > 640.0 { camera::set_x(640.0); }
+            self.pos.0 += move_speed;
+            moved = true;
         } 
-
         if gp.up.pressed() { //&& camera::y() > 0.0{
-            camera::move_y(-move_speed);
-            //if camera::y() < 0.0 { camera::set_y(0.0); }
+            self.pos.1 -= move_speed;
+            moved = true;
         } 
         if gp.down.pressed() { //&& camera::y() < 480. {
-            camera::move_y(move_speed);
-            //if camera::y() > 480.0 { camera::set_y(480.0); }
+            self.pos.1 += move_speed;
+            moved = true;
         }
-
+        if moved {
+            if self.pos.0 < 0 { self.pos.0 = 0; }
+            else if self.pos.0 > 640 { self.pos.0 = 640; }
+            if self.pos.1 < 0 { self.pos.1 = 0; }
+            else if self.pos.1 > 480 { self.pos.1 = 480; }
+        }
+        camera::set_xy(self.pos.0, self.pos.1);
+        
         if gp.a.just_pressed() || gp.b.just_pressed() {
             self.zoom_tick = tick();
         }
@@ -55,46 +65,46 @@ impl CameraCtrl {
         }
 
         // Handle pointer input for panning
-        // let pp = p.relative_position();
-        // let damping = 0.4;
+        let pp = p.xy_fixed();
+        let damping = 0.4;
         
-        // if p.just_pressed() {
-        //     self.dragging = true;
-        //     self.last_pointer_pos = (pp.0, pp.1);
-        //     self.velocity = (0, 0); // Reset velocity when dragging starts
-        // } else if p.pressed() && self.dragging {
-        //     let dx = pp.0 - self.last_pointer_pos.0;
-        //     let dy = pp.1 - self.last_pointer_pos.1;
+        if p.just_pressed() {
+            self.dragging = true;
+            self.last_pointer_pos = (pp.0, pp.1);
+            self.velocity = (0, 0); // Reset velocity when dragging starts
+        } else if p.pressed() && self.dragging {
+            let dx = pp.0 - self.last_pointer_pos.0;
+            let dy = pp.1 - self.last_pointer_pos.1;
 
-        //     // Update velocity based on pointer movement
-        //     self.velocity.0 += -dx;
-        //     self.velocity.1 += -dy;
+            // Update velocity based on pointer movement
+            self.velocity.0 += -dx;
+            self.velocity.1 += -dy;
 
-        //     self.last_pointer_pos = (pp.0, pp.1);
-        // } else if p.released() {
-        //     self.dragging = false;
-        // }
+            self.last_pointer_pos = (pp.0, pp.1);
+        } else if p.released() {
+            self.dragging = false;
+        }
 
-        // // Apply velocity to the camera position
-        // camera::move_x(self.velocity.0);
-        // camera::move_y(self.velocity.1);
+        // Apply velocity to the camera position
+        self.pos.0 += self.velocity.0;
+        self.pos.1 += self.velocity.1;
 
-        // // Clamp the camera's position to the bounds (0, 0, 640, 480)
-        // if camera::x() < 0.0 {
-        //     camera::set_x(0.0);
-        // } else if camera::x() > 640.0 {
-        //     camera::set_x(640.0);
-        // }
+        // Clamp the camera's position to the bounds (0, 0, 640, 480)
+        if self.pos.0 < 0 {
+            self.pos.0 = 0;
+        } else if self.pos.0 > 640 {
+            self.pos.0 = 640;
+        }
 
-        // if camera::y() < 0.0 {
-        //     camera::set_y(0.0);
-        // } else if camera::y() > 480.0 {
-        //     camera::set_y(480.0);
-        // }
+        if self.pos.1 < 0 {
+            self.pos.1 = 0;
+        } else if self.pos.1 > 400 {
+            self.pos.1 = 400;
+        }
 
-        // // Apply damping to gradually reduce velocity
-        // self.velocity.0 = (self.velocity.0 as f32 * damping) as i32;
-        // self.velocity.1 = (self.velocity.0 as f32 * damping) as i32;
+        // Apply damping to gradually reduce velocity
+        self.velocity.0 = (self.velocity.0 as f32 * damping) as i32;
+        self.velocity.1 = (self.velocity.0 as f32 * damping) as i32;
 
         // Handle pointer input for zooming
         // if p.scroll_y() > 0.0 && camera::zoom() < 4.0 {

@@ -37,7 +37,7 @@ impl PopUp {
     }
 
     pub fn hovered(&self) -> bool {
-        let p = pointer().fixed_position();
+        let p = pointer().xy_fixed();
         self.hitbox.intersects_xy((p.0 as i32, p.1 as i32))
     }
 
@@ -50,7 +50,7 @@ impl PopUp {
         let offset = (anchor.w() as i32 * z, anchor.h() as i32/2 * z - self.hitbox.h() as i32/2);
         self.hitbox = self.hitbox.position(
             offset.0 + 320 + z * anchor.x() - camera::x() as i32 * z,
-            offset.1 + 240 + z * anchor.y() - camera::y() as i32 * z 
+            offset.1 + 200 + z * anchor.y() - camera::y() as i32 * z 
         );
         // Flip pop up to the left of POI if it goes off screen right
         if self.hitbox.x() + self.hitbox.w() as i32 > 640 {
@@ -113,7 +113,7 @@ impl PopUp {
         let offset = (anchor.w() as i32 * z, anchor.h() as i32/2 * z - self.hitbox.h() as i32/2);
         self.hitbox = self.hitbox.position(
             offset.0 + 320 + z * anchor.x() - camera::x() as i32 * z,
-            offset.1 + 240 + z * anchor.y() - camera::y() as i32 * z 
+            offset.1 + 200 + z * anchor.y() - camera::y() as i32 * z 
         );
         // Flip pop up to the left of POI if it goes off screen right
         if self.hitbox.x() + self.hitbox.w() as i32 > 640 {
@@ -199,11 +199,11 @@ impl PopUp {
             text!(
                 &d, 
                 fixed = true, 
-                xy = (self.panel.right() - 22, self.panel.y() + 6), 
+                xy = (self.panel.right() - 22, self.panel.y() + 7), 
                 font = "large",
                 color = 0xffffffff
             );
-            sprite!("DRONES", fixed = true, xy = (self.panel.right() - 40, self.panel.y() + 2), w = 16, h = 16, color = 0xffffffff);
+            sprite!("DRONES", fixed = true, xy = (self.panel.right() - 40, self.panel.y() + 3), w = 16, h = 16, color = 0xffffffff);
         }
         rect!(
             fixed = true, 

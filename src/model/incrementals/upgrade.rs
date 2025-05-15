@@ -13,7 +13,7 @@ pub struct Upgrade {
     // Drawing variables
     pub entry: Btn,
     pub buy_button: Btn,
-    pub tooltip: TextBox,
+    pub tooltip: WrapBox,
     pub hovered: bool,
     pub display_lvl: bool,
 
@@ -78,7 +78,7 @@ impl Upgrade {
             .height(15)
             .width(15);
 
-        self.tooltip = TextBox::new(self.description.clone(), 0);
+        self.tooltip = WrapBox::new(self.description.clone(), 0);
 
         self.array(pop_up, index);
         return self.clone();

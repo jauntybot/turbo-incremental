@@ -6,7 +6,7 @@ pub struct Player {
     pub xy: (f32, f32),
     target_pos: (f32, f32),
 
-    camera: CameraCtrl,
+    pub camera: CameraCtrl,
 
     scans: Vec<Scan>,
     prestiged: bool,
@@ -101,7 +101,7 @@ impl Player {
     }
 
     pub fn scan(&mut self) {
-        let pp = pointer().relative_position();
+        let pp = pointer().xy();
         let pos = (pp.0 as f32 + 5., pp.1 as f32 - 5.);
         self.scans.push(Scan::new(self.xy, pos));
     }
@@ -121,7 +121,7 @@ impl Player {
 pub struct PlayerDisplay {}
 impl PlayerDisplay {
     pub fn draw(resources: &Vec<(Resources, u64)>) {
-        let vp = Bounds::new(0, 0, 640, 480);
+        let vp = Bounds::new(0, 0, 640, 400);
         let wh = (64, resources.len() as i32 * 24 + 20);
         let xy = (0, vp.bottom() - wh.1);
 
@@ -137,7 +137,7 @@ impl PlayerDisplay {
             button.update();
             button.draw();
             if button.state == BtnState::Hovered {
-                let mut desc = TextBox::new(resources[i].0.description(), 0);
+                let mut desc = WrapBox::new(resources[i].0.description(), 0);
                 desc.update(button.bounds, 6);
                 desc.draw();
             }

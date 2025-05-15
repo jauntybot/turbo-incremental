@@ -106,7 +106,7 @@ impl Drone {
         let angle = ((self.timer as f32 / self.interval as f32) + self.phase) * std::f32::consts::TAU; // TAU = 2 * PI
 
         // Define the ellipse dimensions
-        let center = (320.0, 240.0 ); // Center of the ellipse
+        let center = (320.0, 200.0 ); // Center of the ellipse
         let radius_x = 100.0; // Horizontal radius
         let radius_y = 25.0;  // Vertical radius
 
@@ -227,10 +227,8 @@ impl Drone {
             if self.cargo.is_empty() && done {
                 if let Some(asteroid) = field.asteroids.iter_mut().find(|a| a.id == self.asteroid_id) {
                     // Active mining
-                    if done {
-                        self.timer += 1. * (1.0 + self.speed as f32 * 0.05);
-                        asteroid.drilling = true; // Start drilling animation
-                    }
+                    self.timer += 1. * (1.0 + self.speed as f32 * 0.05);
+                    asteroid.drilling = true; // Start drilling animation
                     self.target_pos = asteroid.pos;
                     if self.timer >= self.interval {
                         self.timer = 0.;
@@ -247,6 +245,26 @@ impl Drone {
                         .filter(|a| a.angle < 2.3 && a.radius < 2040.0)
                         .collect();
             
+                    if !matching_asteroids.is_empty() {
+                        let random_index = (rand() as usize) % matching_asteroids.len();
+                        Some(matching_asteroids[random_index])
+                    } else {
+                        None
+                    }
+                } {
+                    self.asteroid_id = asteroid.id;
+                    self.target_pos = asteroid.pos;
+                }
+            } else if self.cargo.is_empty() && !done {
+                if let Some(asteroid) = field.asteroids.iter_mut().find(|a| a.id == self.asteroid_id) {
+                    self.target_pos = asteroid.pos;
+                } else if let Some(asteroid) = {
+                    let matching_asteroids: Vec<_> = field
+                    .asteroids
+                    .iter()
+                    .filter(|a| a.angle < 2.3 && a.radius < 2040.0)
+                        .collect();
+                    
                     if !matching_asteroids.is_empty() {
                         let random_index = (rand() as usize) % matching_asteroids.len();
                         Some(matching_asteroids[random_index])

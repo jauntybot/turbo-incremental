@@ -1,8 +1,12 @@
 use super::*;
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub enum Event {
     StartGame,
+    SaveGame,
+    ResetGame,
     DroneDepotUnlockable,
     UnlockDroneDepot,
     MinesUnlockable,
@@ -33,16 +37,18 @@ impl EventManager {
     }
 
     // Process all events in the queue
-    pub fn process_events<F>(&mut self, mut handler: F)
+    pub fn process_events<F>(&mut self, mut handler: F) -> bool
     where
         F: FnMut(&Event),
     {
+        let mut save = false;
         for i in 0..self.events.len() {
             let event = &self.events[i];
             if let Some(dialogue) = &mut self.dialogue {
                 if dialogue.event_broadcast <= 0 {
                     handler(event);
                     self.events.remove(i);
+                    save = true
                 }
             } else {
                 match event {
@@ -61,18 +67,23 @@ impl EventManager {
                     Event::LateGame => { 
                         self.dialogue = Some(CUTSCENES[4].clone().start()); 
                     }
+                    Event::Prestige => {
+                        self.dialogue = Some(CUTSCENES[5].clone().start());
+                    }
                     _ => {
                         handler(event);
                         self.events.remove(i);
+                        save = true
                     }
                 }
             }
         }
+        save
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, player: &mut Player) {
         if let Some(dialogue) = &mut self.dialogue {
-            if !dialogue.update() {
+            if !dialogue.update(player) {
                 self.dialogue = None;
             }
         }
@@ -117,8 +128,8 @@ impl Dialogue {
         }
     }
 
-    pub fn update(&mut self) -> bool {
-        if self.d_box.update() {
+    pub fn update(&mut self, player: &mut Player) -> bool {
+        if self.d_box.update(player) {
             return self.next();
         }
 
@@ -141,8 +152,8 @@ pub struct DialogueBox {
 
 impl DialogueBox {
     pub fn new() -> Self {
-        let panel = Bounds::new(224, 384, 192, 64);
-        let btn = Bounds::new(320, 240, 28, 18)
+        let panel = Bounds::new(224, 400-64, 192, 64);
+        let btn = Bounds::new(320, 240, 64, 24)
             .anchor_bottom(&panel)
             .anchor_right(&panel);
         Self { 
@@ -174,24 +185,34 @@ impl DialogueBox {
         self.typed_message.push_str(&self.message);
     }
 
-    pub fn update(&mut self) -> bool {
+    pub fn update(&mut self, player: &mut Player) -> bool {
         if self.tween.0.is_some() || self.tween.1.is_some() {
             if let Some(ref mut xtween) = self.tween.0 {
-                camera::set_x(xtween.get());
-                if xtween.done() {
-                    self.tween.0 = None;
-                }
+                let x = xtween.get();
+                player.camera.pos.0 = x;
+                player.camera.last_pointer_pos.0 = x;
+                camera::set_x(x);
             }
             if let Some(ref mut ytween) = self.tween.1 {
-                camera::set_y(ytween.get());
-                if ytween.done() {
-                    self.tween.1 = None;
-                }
+                let y = ytween.get();
+                player.camera.pos.1 = y;
+                player.camera.last_pointer_pos.1 = y;
+                camera::set_y(y);
             }
+            player.camera.velocity = (0,0);
         }
 
-        if pointer().just_pressed() {
-            return true;
+        let p = pointer();
+        if !self.prompt {
+            if p.intersects_fixed(self.panel.x(), self.panel.y(), self.panel.w(), self.panel.h()) && p.just_pressed() {
+                return true;
+            }
+        } else {
+            self.confirm.update();
+            self.cancel.update();
+            if self.confirm.on_click() {
+
+            }
         }
         
         false
@@ -225,7 +246,7 @@ impl DialogueBox {
             wh = (48, 48)
         );
 
-        let lines = TextBox::split_text(self.typed_message.clone(), 24);
+        let lines = WrapBox::split_text(self.typed_message.clone(), 24);
         for i in 0..lines.len() {
             text!("{}", lines[i]; fixed = true, xy = (self.panel.x() + 68, self.panel.y() + 8 + i as i32 * 10), color = 0xffffffff);
         }
