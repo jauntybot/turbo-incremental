@@ -53,6 +53,8 @@ pub struct Asteroid {
     pub id: u32,
     pub drilling: bool,
     debris: Vec<Debris>, // Chunks of the asteroid
+    sprite: u32,
+    rot: u32,
 }
 
 impl Asteroid {
@@ -73,6 +75,8 @@ impl Asteroid {
             id,
             drilling: false,
             debris: vec![],
+            sprite: rand() % 3,
+            rot: rand() % 4
         }
     }
 
@@ -97,14 +101,23 @@ impl Asteroid {
         self.debris.retain_mut(|chunk| !chunk.update(self.pos)); // Remove debris that has reached its lifetime
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&self, color: usize) {
         // Draw the asteroid as a circle
         //circ!(xy = (self.pos.0 - self.size/2., self.pos.1 - self.size/2.), diameter = self.size, color = 0xaaaaaaff);
+        let sprite = format!("stroid_{:02}", self.sprite);
+        let c: u32 = {
+            match color {
+                0 => 0x555555ff,
+                1 => 0x949494ff,
+                _ => 0xffffffff,
+            }
+        };
         sprite!(
-            "stroid",
+            &sprite,
             x = self.pos.0 - 12.,
             y = self.pos.1 - 12.,
-            color = 0xffffffff
+            color = c,
+            rotation = self.rot * 90,
         );
         for chunk in self.debris.iter() {
             chunk.draw();
@@ -116,46 +129,60 @@ impl Asteroid {
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct AsteroidField {
-    pub asteroids: Vec<Asteroid>,
+    pub asteroids: Vec<Vec<Asteroid>>,
     pub limit: usize,       // Maximum number of asteroids
     pub spawn_interval: u32, // Interval between spawns (in frames)
     pub timer: u32,         // Timer to track spawn intervals
+    belt_index: usize,
 }
 
 impl AsteroidField {
-    pub fn new(limit: usize, spawn_interval: u32) -> Self {
+    pub fn new() -> Self {
         Self {
-            asteroids: Vec::new(),
-            limit,
-            spawn_interval,
+            asteroids: vec![vec![], vec![], vec![]],
+            limit: 350,
+            spawn_interval: 5,
             timer: 0,
+            belt_index: 0,
         }
     }
 
     pub fn update(&mut self) {
         // Update existing asteroids
-        for asteroid in self.asteroids.iter_mut() {
-            asteroid.update();
+        for belt in self.asteroids.iter_mut() {
+            for asteroid in belt.iter_mut() {
+                asteroid.update();
+            }
         }
 
         // Remove asteroids that have reached the left middle point (angle = π radians)
-        self.asteroids.retain(|asteroid| asteroid.angle < 2.62);
+        for belt in self.asteroids.iter_mut() {
+            belt.retain(|asteroid| asteroid.angle < 2.62);
+        }
 
         // Increment the timer
         self.timer += 1;
 
         // Spawn new asteroids if below the limit and the interval has passed
-        if self.asteroids.len() < self.limit && self.timer >= self.spawn_interval {
-            self.asteroids.push(Asteroid::new());
+        let stroids: usize = self.asteroids.iter().map(|belt| belt.len()).sum();
+        if stroids < self.limit && self.timer >= self.spawn_interval {
+            self.asteroids[self.belt_index].push(Asteroid::new());
             self.timer = 0; // Reset the timer
+            self.belt_index += 1;
+            if self.belt_index >= 3 {
+                self.belt_index = 0;
+            }
         }
     }
 
     pub fn draw(&self) {
         //rect!(xy = (-320, -240), wh = (640, 480), border_size = 1, color = 0x00000000, border_color = 0x0ffffffff);
         // Draw all asteroids
-        for asteroid in self.asteroids.iter() {
-            asteroid.draw();
+        
+        for i in 0..self.asteroids.len() {
+            for asteroid in self.asteroids[2 - i].iter() {
+                asteroid.draw(i);
+            }
         }
     }
 }

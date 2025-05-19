@@ -4,6 +4,7 @@ use super::*;
 pub struct Exoplanet {
     pub drones: Vec<Drone>,
     pub scanner_level: u32,
+    collecting: bool,
     pub drone_level: u32,
     pub drone_speed: u32,
 
@@ -25,6 +26,7 @@ impl Exoplanet {
         Exoplanet {
             drones: vec![],
             scanner_level: 1,
+            collecting: false,
             drone_level: 0,
             drone_speed: 0,
 
@@ -67,20 +69,16 @@ impl Exoplanet {
         if event_manager.dialogue.is_none() {
             // Initial click
             if self.hovered && self.hitbox.intersects_xy(rp) 
-                && p.just_pressed() && tick() - self.clicked_at >= self.collect_interval {
-                self.clicked_at = tick();
-                produced.1 += self.manual_produce();
-                player.scan();
+                && p.just_pressed() && !self.collecting {
+                self.collecting = true;
             }
             // Manually produce resources every 30 ticks
-            if tick() - self.clicked_at >= self.collect_interval {
-                if self.hitbox.intersects_xy(rp) && p.pressed() {
-                    produced.1 += self.manual_produce();
-                    player.scan();
-                }
+            if self.collecting && tick() - self.clicked_at >= self.collect_interval {
+                produced.1 += self.manual_produce();
+                player.scan();
                 self.clicked_at = tick();
+                if !self.hitbox.intersects_xy(rp) || p.released() { self.collecting = false; }
             }
-            //if p.released() { self.clicked_at = 0; }
         }
 
         produced.1 += self.produce();

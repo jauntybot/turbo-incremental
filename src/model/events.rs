@@ -21,6 +21,7 @@ pub enum Event {
 pub struct EventManager {
     events: Vec<Event>,
     pub dialogue: Option<Dialogue>,
+    over: bool,
 }
 
 impl EventManager {
@@ -28,6 +29,7 @@ impl EventManager {
         Self { 
             events: Vec::new(),
             dialogue: Some(CUTSCENES[0].clone().start()),
+            over: false,
         }
     }
 
@@ -37,18 +39,16 @@ impl EventManager {
     }
 
     // Process all events in the queue
-    pub fn process_events<F>(&mut self, mut handler: F) -> bool
+    pub fn process_events<F>(&mut self, mut handler: F)
     where
         F: FnMut(&Event),
     {
-        let mut save = false;
-        for i in 0..self.events.len() {
-            let event = &self.events[i];
+        if !self.events.is_empty() {
+            let event = &self.events[0];
             if let Some(dialogue) = &mut self.dialogue {
                 if dialogue.event_broadcast <= 0 {
                     handler(event);
-                    self.events.remove(i);
-                    save = true
+                    self.events.clear();
                 }
             } else {
                 match event {
@@ -70,23 +70,43 @@ impl EventManager {
                     Event::Prestige => {
                         self.dialogue = Some(CUTSCENES[5].clone().start());
                     }
+                    Event::ResetGame => {
+                        if self.over {
+                            self.events.clear();
+                            self.over = false;
+                        } else {
+                            self.dialogue = Some(CUTSCENES[6].clone().start());
+                        }
+                    }
+                    Event::EndGame => {
+                        self.dialogue = Some(CUTSCENES[7].clone().start());
+                    }
                     _ => {
                         handler(event);
-                        self.events.remove(i);
-                        save = true
+                        self.events.clear();
                     }
                 }
             }
         }
-        save
+        if self.over {
+            self.over = false;
+        }
     }
 
     pub fn update(&mut self, player: &mut Player) {
         if let Some(dialogue) = &mut self.dialogue {
+            dialogue.draw();
             if !dialogue.update(player) {
+                self.over = true;
                 self.dialogue = None;
             }
         }
+    }
+}
+
+impl Default for EventManager {
+    fn default() -> Self {
+        EventManager::new()
     }
 }
 
@@ -96,6 +116,7 @@ pub struct Dialogue {
     pub camera_pos: Vec<((i32, i32), i32)>,
     pub event_broadcast: i32,
     pub d_box: DialogueBox,
+    pub prompt: bool,
 }
 impl Dialogue {
     pub fn start(&mut self) -> Self {
@@ -105,14 +126,16 @@ impl Dialogue {
                 self.d_box.tween(pos.0);
             }
         }
+        self.d_box.prompt = self.prompt;
         return self.clone();
     }
 
+    // Returns false when no next message found - end of dialogue
     pub fn next(&mut self) -> bool {
         // Remove the first message from the queue
         self.messages.remove(0);
         self.event_broadcast -= 1;
-        if self.messages.len() <= 0 {
+        if self.messages.is_empty() {
             false
         } else {
             self.d_box.set_message(self.messages[0].clone());
@@ -128,13 +151,28 @@ impl Dialogue {
         }
     }
 
+    // Returns false when no next message found - end of dialogue
     pub fn update(&mut self, player: &mut Player) -> bool {
-        if self.d_box.update(player) {
-            return self.next();
+        if !self.d_box.prompt {
+            if self.d_box.update(player) {
+                return self.next();
+            }
+        } else {
+            if let Some(p) = self.d_box.prompt(player) {
+                if p {
+                    log!("confirmed");
+                    self.event_broadcast -= 1;
+                } else {
+                    log!("canceled");
+                    return false
+                }
+            }
         }
-
-        self.d_box.draw();
         true
+    }
+
+    pub fn draw(&self) {
+        self.d_box.draw();
     }
 }
 
@@ -152,17 +190,18 @@ pub struct DialogueBox {
 
 impl DialogueBox {
     pub fn new() -> Self {
-        let panel = Bounds::new(224, 400-64, 192, 64);
-        let btn = Bounds::new(320, 240, 64, 24)
+        let panel = Bounds::new(224, 400-64-16, 192, 64);
+        let btn = Bounds::new(320, 240, 48, 22)
             .anchor_bottom(&panel)
-            .anchor_right(&panel);
+            .anchor_right(&panel)
+            .translate(-16 ,-4);
         Self { 
             panel,
             typed_message: String::new(),
             message: String::new(),
             tween: (None, None),
             prompt: false,
-            confirm: Btn::new("CONFIRM".to_string(), btn, true, 1),
+            confirm: Btn::new("CONFIRM".to_string(), btn.translate_x(-56), true, 1),
             cancel: Btn::new("CANCEL".to_string(), btn, true, 1),
         }
     }
@@ -190,32 +229,40 @@ impl DialogueBox {
             if let Some(ref mut xtween) = self.tween.0 {
                 let x = xtween.get();
                 player.camera.pos.0 = x;
-                player.camera.last_pointer_pos.0 = x;
-                camera::set_x(x);
             }
             if let Some(ref mut ytween) = self.tween.1 {
                 let y = ytween.get();
                 player.camera.pos.1 = y;
-                player.camera.last_pointer_pos.1 = y;
-                camera::set_y(y);
-            }
-            player.camera.velocity = (0,0);
-        }
-
-        let p = pointer();
-        if !self.prompt {
-            if p.intersects_fixed(self.panel.x(), self.panel.y(), self.panel.w(), self.panel.h()) && p.just_pressed() {
-                return true;
-            }
-        } else {
-            self.confirm.update();
-            self.cancel.update();
-            if self.confirm.on_click() {
-
             }
         }
         
+        let p = pointer();
+        if p.intersects_fixed(self.panel.x(), self.panel.y(), self.panel.w(), self.panel.h()) && p.just_pressed() {
+            player.camera.velocity = (0,0);
+            player.camera.last_pointer_pos = (0,0);
+            player.camera.dragging = false;
+            return true;
+        }
+        
         false
+    }
+    
+    pub fn prompt(&mut self, player: &mut Player) -> Option<bool> {
+        self.confirm.update();
+        self.cancel.update();
+        if self.confirm.on_click() {
+            player.camera.velocity = (0,0);
+            player.camera.last_pointer_pos = (0,0);
+            player.camera.dragging = false;
+            return Some(true);
+        }
+        if self.cancel.on_click() {
+            player.camera.velocity = (0,0);
+            player.camera.last_pointer_pos = (0,0);
+            player.camera.dragging = false;
+            return Some(false);
+        }
+        None
     }
 
     pub fn draw(&self) {
@@ -243,7 +290,7 @@ impl DialogueBox {
             "turbi",
             fixed = true,
             xy = (self.panel.x() + 8, self.panel.y() + 8),
-            wh = (48, 48)
+            wh = (48, 48), 
         );
 
         let lines = WrapBox::split_text(self.typed_message.clone(), 24);
@@ -251,6 +298,11 @@ impl DialogueBox {
             text!("{}", lines[i]; fixed = true, xy = (self.panel.x() + 68, self.panel.y() + 8 + i as i32 * 10), color = 0xffffffff);
         }
 
-        text!("[TAP TO CONTINUE]", fixed = true, xy = (self.panel.x() + 78, self.panel.y() + self.panel.h() as i32 - 10), font = "small", color = 0x847e87ff);
+        if !self.prompt {
+            text!("[TAP TO CONTINUE]", fixed = true, xy = (self.panel.x() + 78, self.panel.y() + self.panel.h() as i32 - 10), font = "small", color = 0x847e87ff);
+        } else {
+            self.confirm.draw();
+            self.cancel.draw();
+        }
     }
 }

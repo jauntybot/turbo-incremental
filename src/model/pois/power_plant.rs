@@ -1,6 +1,6 @@
 use super::*;
 
-pub const PLANT_BOX: (i32, i32, i32, i32) = (576, 64, 64, 64);
+pub const PLANT_BOX: (i32, i32, i32, i32) = (576, 64, 64, 74);
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct PowerPlant {
@@ -56,8 +56,11 @@ impl PowerPlant {
         // Hover check
         let p = pointer();
         let rp = p.xy();
-        self.hovered = self.hitbox.intersects_xy(rp) || (self.hovered && self.pop_up.hovered()); 
-        
+        if event_manager.dialogue.is_none() {
+            self.hovered = self.hitbox.intersects_xy(rp) || (self.hovered && self.pop_up.hovered()); 
+        } else {
+            self.hovered = false;
+        }
         // Produce Resources
         let mut produced = (Resources::Power, 0);
         
@@ -75,7 +78,7 @@ impl PowerPlant {
 
         for drone in self.drones.iter_mut() {
             if drone.conduit(nebula) {
-                let amount =  (1.0 + self.drone_level as f32 * 0.55) as u64 * 3;
+                let amount =  (1.0 + self.drone_level as f32 * 0.75 * 8.) as u64;
                 produced.1 += amount;
                 self.collections.push(
                     Collection::new(
@@ -116,25 +119,28 @@ impl PowerPlant {
             }
         }
 
-        // outline
-        if self.hovered {
-            rect!(
-                x = self.hitbox.x() - 1, 
-                y = self.hitbox.y() - 1, 
-                wh = (self.hitbox.w() + 2, self.hitbox.w() + 2), 
-                border_radius = 4,
-                color = 0xffffffff
-            ); 
-        }
-
-        // main GFX
+        // if self.hovered {
+        //     rect!(
+        //         x = self.hitbox.x() - 1, 
+        //         y = self.hitbox.y() - 1, 
+        //         wh = (self.hitbox.w() + 2, self.hitbox.w() + 2), 
+        //         border_radius = 4,
+        //         color = 0xffffffff
+        //     ); 
+        // }
         // rect!(
-        //     xy = self.hitbox.xy(), 
+            //     xy = self.hitbox.xy(), 
         //     wh = self.hitbox.wh(), 
         //     border_radius = 4,
         //     color = 0xac3232ff
         // );
-        sprite!("mines", xy = self.hitbox.xy());
+        
+        // outline
+        if self.hovered {
+            sprite!("plant_hovered", xy = self.hitbox.xy());
+        }
+        // main GFX
+        sprite!("plant", xy = self.hitbox.xy());
 
         // Draw drones
         for drone in self.drones.iter() {
@@ -144,7 +150,12 @@ impl PowerPlant {
         }
 
         if !self.unlocked { 
-            text!("LOCKED", xy = (self.hitbox.x() + 4, self.hitbox.y() + 4), color = 0xffffffff);       
+            sprite!("plant_locked", xy = self.hitbox.xy());
+            if self.hovered {
+                rect!(xy = self.hitbox.translate(-33, 13).center(), wh = (66, 14), color = 0xffffffff);
+            }
+            rect!(xy = self.hitbox.translate(-32, 14).center(), wh = (64, 12), color = 0x222034ff);
+            text!("LOCKED", xy = self.hitbox.translate(-15, 17).center(), color = 0xffffffff);   
         }
 
         // Draw collection numbers

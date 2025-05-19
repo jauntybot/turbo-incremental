@@ -7,6 +7,7 @@ pub struct Segment {
     pub thickness: f32,
     pub direction: (f32, f32),
     pub color: u32, // RGBA: we will fade alpha
+    
 }
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
@@ -17,6 +18,8 @@ pub struct Bolt {
     dir: f32,
     center: (f32, f32),       // center of arc
     angle_speed: f32,         // radians per second
+    draw: bool,
+    draw_segments: Vec<Segment>,
 }
 
 impl Bolt {
@@ -33,21 +36,22 @@ impl Bolt {
         (sum_x / n as f32, sum_y / n as f32)
     }
 
-    fn update(&mut self) {
+    pub fn update(&mut self) {
         self.age += self.dir / 60.0;
+        self.draw_segments.clear();
+
         let num_segments = self.segments.len();
         let segment_duration = GROW_TIME / num_segments as f32;
         let shrink_start = self.lifespan - GROW_TIME * 2.0;
-        
+
         for (i, segment) in self.segments.iter().enumerate() {
             let seg_time_start = i as f32 * segment_duration;
             let seg_time_end = seg_time_start + segment_duration;
-        
+
             let mut draw = false;
             let mut draw_start = segment.start;
             let mut draw_end = segment.end;
-        
-            // GROW PHASE
+
             if self.age < GROW_TIME {
                 if self.age >= seg_time_start && self.age < seg_time_end {
                     let t = (self.age - seg_time_start) / segment_duration;
@@ -59,22 +63,17 @@ impl Bolt {
                 } else if self.age >= seg_time_end {
                     draw = true;
                 }
-            }
-            // FULL PHASE
-            else if self.age >= GROW_TIME && self.age <= shrink_start {
+            } else if self.age >= GROW_TIME && self.age <= shrink_start {
                 draw = true;
-            }
-            // SHRINK PHASE (reverse draw order)
-            else if self.age > shrink_start {
+            } else if self.age > shrink_start {
                 let shrink_age = self.age - shrink_start;
                 let t = shrink_age / (GROW_TIME * 2.0);
-                //log!("{}, {}, {}", shrink_age, GROW_TIME * 4.0, t);
-                let seg_index = (t * num_segments as f32).floor() as usize; // Reverse the shrinking direction
-            
+                let seg_index = (t * num_segments as f32).floor() as usize;
+
                 if i > seg_index {
                     draw = true;
                 } else if i == seg_index {
-                    let local_t = (t * num_segments as f32) % 1.0; // Interpolate from start to end
+                    let local_t = (t * num_segments as f32) % 1.0;
                     draw = true;
                     draw_start = (
                         segment.start.0 + (segment.end.0 - segment.start.0) * local_t,
@@ -82,32 +81,44 @@ impl Bolt {
                     );
                 }
             }
-        
+
             if draw {
                 let alpha = 1.0 - (self.age / self.lifespan);
                 let a = (segment.color >> 24) & 0xff;
                 let r = (segment.color >> 16) & 0xff;
                 let g = (segment.color >> 8) & 0xff;
                 let b = segment.color & 0xff;
-        
+
                 let faded_color =
                     ((a as f32 * alpha) as u32) << 24 |
                     (r << 16) |
                     (g << 8) |
                     (b);
-        
-                path!(
-                    start = draw_start,
-                    end = draw_end,
-                    width = segment.thickness,
-                    color = faded_color,
-                );
-                circ!(
-                    xy = (draw_start.0 - segment.thickness / 2., draw_start.1 - segment.thickness / 2.),
-                    diameter = segment.thickness/2.,
-                    color = faded_color,
-                );
+
+                self.draw_segments.push(Segment {
+                    start: draw_start,
+                    end: draw_end,
+                    thickness: segment.thickness,
+                    direction: segment.direction,
+                    color: faded_color,
+                });
             }
+        }
+    }
+
+   pub fn draw(&self) {
+        for seg in &self.draw_segments {
+            path!(
+                start = seg.start,
+                end = seg.end,
+                width = seg.thickness,
+                color = seg.color,
+            );
+            circ!(
+                xy = (seg.start.0 - seg.thickness / 2., seg.start.1 - seg.thickness / 2.),
+                diameter = seg.thickness / 2.,
+                color = seg.color,
+            );
         }
     }
 }
@@ -153,25 +164,34 @@ impl NebulaStorm {
             );
 
             self.bolts.push(Bolt {
-                segments,
+                segments: segments,
                 age: 0.0,
                 lifespan: 0.8,
                 dir: 1.,
                 center,
                 angle_speed: 0.2,
+                draw: false,
+                draw_segments: vec![],
             });
         }
 
-        // self.field.update();
-        // self.field.draw(tick());
-
-        // Draw all bolts
-        for bolt in self.bolts.iter_mut() {
-            bolt.update();        
-        }
+        //self.field.update();
+        
         // Remove expired bolts
-        self.bolts.retain(|bolt| bolt.age < bolt.lifespan);
+        self.bolts.retain_mut(|bolt| {
+            bolt.update();
+            bolt.age < bolt.lifespan
+        });
 
+    }
+
+    pub fn draw(&mut self) {
+        // Draw all bolts
+        for bolt in self.bolts.iter() {
+            bolt.draw();        
+        }
+        
+        //self.field.draw(tick());
     }
 
     pub fn get_drone_pos(&self) -> (f32, f32) {
@@ -188,7 +208,7 @@ impl NebulaStorm {
         segments: usize,
     ) -> (f32, f32) {
         let mut points = Vec::new();
-        let target = ((PLANT_BOX.0 + PLANT_BOX.2) as f32 - 4.0, PLANT_BOX.1 as f32 + 4.0);
+        let target = ((PLANT_BOX.0 + PLANT_BOX.2) as f32 - 24.0, PLANT_BOX.1 as f32 + 16.0);
 
         for i in 0..segments {
             let t = i as f32 / segments as f32;
@@ -197,7 +217,7 @@ impl NebulaStorm {
 
             let mut jitter_x = 0.0;
             let mut jitter_y = 0.0;
-            if i < segments - 2 {
+            if i < segments - 4 {
                 jitter_x = (rand() as f32 % 101. / 100. - 0.5) * 25.0;
                 jitter_y = (rand() as f32 % 101. / 100. - 0.5) * 25.0;
             }
@@ -226,6 +246,8 @@ impl NebulaStorm {
             dir: 1.,
             center: origin,
             angle_speed: 0.2,
+            draw: false,
+            draw_segments: vec![],
         });
         end
     }

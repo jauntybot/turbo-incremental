@@ -1,6 +1,6 @@
 use super::*;
 
-pub const DEPOT_BOX: (i32, i32, i32, i32) = (64, 320, 64, 64);
+pub const DEPOT_BOX: (i32, i32, i32, i32) = (128, 320, 64, 64);
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct DroneDepot {
@@ -88,10 +88,14 @@ impl DroneDepot {
     pub fn update(&mut self, player: &mut Player, event_manager: &mut EventManager) {
         let p = pointer();
         let rp = p.xy();
-        self.hovered = 
-            self.hitbox.intersects_xy(rp) 
-            || (self.hovered && self.pop_up.hovered()) 
-            || (self.fabricator_unlocked && self.hovered && self.fabricator.hovered()); 
+        if event_manager.dialogue.is_none() {
+            self.hovered = 
+                self.hitbox.intersects_xy(rp) 
+                || (self.hovered && self.pop_up.hovered()) 
+                || (self.fabricator_unlocked && self.hovered && self.fabricator.hovered()); 
+        } else {
+            self.hovered = false;
+        }
 
         // Update pop up position and buttons, apply upgrades
         if self.hovered {
@@ -153,33 +157,28 @@ impl DroneDepot {
     }
 
     pub fn draw(&self) {
-        // outline
+                // outline
         if self.hovered {
-            rect!(
-                x = self.hitbox.x() - 1, 
-                y = self.hitbox.y() - 1, 
-                wh = (self.hitbox.w() + 2, self.hitbox.w() + 2), 
-                border_radius = 4,
-                color = 0xffffffff
-            ); 
+            sprite!("depot_hovered", xy = self.hitbox.xy());
+            if self.fabricator_unlocked {
+                sprite!("fab_hovered", xy = self.hitbox.xy());
+            }
+        }
+        // main GFX
+        sprite!("depot", xy = self.hitbox.xy());
+        if self.fabricator_unlocked {
+            sprite!("fab", xy = self.hitbox.xy());
         }
 
-        // main GFX
-        if self.unlockable {
-            sprite!(
-                "mines",
-                xy = self.hitbox.xy(), 
-            );
-            if !self.unlocked { 
-                text!("LOCKED", xy = (self.hitbox.x() + 4, self.hitbox.y() + 4), color = 0xffffffff);       
+        for drone in self.drones.iter() {
+            if drone.front {
+                drone.draw();
             }
-        } else {
-            let anim = animation::get("drone_locked");
-            anim.use_sprite("vignette");
-            anim.set_speed(1.0);
-            sprite!(
-                animation_key = "drone_locked"
-            );
+        }
+
+        if !self.unlocked { 
+            sprite!("depot_locked", xy = self.hitbox.xy());
+            text!("LOCKED", xy = self.hitbox.translate(-16,-4).center(), color = 0xffffffff);       
         }
         
         // Draw drones

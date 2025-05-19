@@ -33,14 +33,14 @@ pub struct Drone {
 impl Drone {
     pub fn new(mode: DroneMode, level: u32, speed: u32, target_pos: (i32, i32)) -> Self {
         Drone {
-            pos: (80., 352.), // Position of drone depot
+            pos: ((DEPOT_BOX.0 + DEPOT_BOX.2/2) as f32, (DEPOT_BOX.1 + DEPOT_BOX.3/2) as f32), // Position of drone depot
             target_pos: (target_pos.0 as f32, target_pos.1 as f32),
             front: true,
             interval: match mode {
                 DroneMode::Survey => 1000.,
-                DroneMode::Mining => 800.,
+                DroneMode::Mining => 600.,
                 DroneMode::Shipping => 400.,
-                DroneMode::Conduit => 600.,
+                DroneMode::Conduit => 500.,
             },
             mode,
             timer: 0.,
@@ -106,7 +106,7 @@ impl Drone {
         let angle = ((self.timer as f32 / self.interval as f32) + self.phase) * std::f32::consts::TAU; // TAU = 2 * PI
 
         // Define the ellipse dimensions
-        let center = (320.0, 200.0 ); // Center of the ellipse
+        let center = (320.0, 240.0 ); // Center of the ellipse
         let radius_x = 100.0; // Horizontal radius
         let radius_y = 25.0;  // Vertical radius
 
@@ -141,7 +141,7 @@ impl Drone {
 
     pub fn shipping(&mut self) -> Option<(Resources, u64)> {
         // Define the start and bounds for the random target
-        let home = ((DEPOT_BOX.0 + DEPOT_BOX.2/2) as f32, (DEPOT_BOX.1 + DEPOT_BOX.3/2) as f32);
+        let home = ((DEPOT_BOX.0 + DEPOT_BOX.2/2) as f32, (DEPOT_BOX.1 + DEPOT_BOX.3 - 8) as f32);
         let mines = ((MINES_BOX.0 + MINES_BOX.2/2) as f32, (MINES_BOX.1 + 2*MINES_BOX.3/3) as f32);
         
         if self.on_site {
@@ -185,7 +185,7 @@ impl Drone {
                     self.timer += 1.;
                     if self.timer >= self.interval {
                         self.timer = 0.;
-                        let amount = ((1. + self.level as f32 * 0.5) * 28.) as u64;
+                        let amount = ((1. + self.level as f32 * 0.75) * 32.) as u64;
                         self.cargo.push((Resources::Metals, amount));
                         self.target_pos = home; // Reset target to home after mining
                         return Some((Resources::Metals, amount));
@@ -204,7 +204,7 @@ impl Drone {
                 self.cargo.clear();
                 if let Some(asteroid) = {
                     let matching_asteroids: Vec<_> = field
-                        .asteroids
+                        .asteroids[0]
                         .iter()
                         .filter(|a| a.angle < 2.3 && a.radius < 2040.0)
                         .collect();
@@ -225,14 +225,14 @@ impl Drone {
         } else {
             let done = self.follow(0.05);
             if self.cargo.is_empty() && done {
-                if let Some(asteroid) = field.asteroids.iter_mut().find(|a| a.id == self.asteroid_id) {
+                if let Some(asteroid) = field.asteroids[0].iter_mut().find(|a| a.id == self.asteroid_id) {
                     // Active mining
                     self.timer += 1. * (1.0 + self.speed as f32 * 0.05);
                     asteroid.drilling = true; // Start drilling animation
                     self.target_pos = asteroid.pos;
                     if self.timer >= self.interval {
                         self.timer = 0.;
-                        let amount = ((1. + self.level as f32 * 0.5) * 4.) as u64;
+                        let amount = ((1. + self.level as f32 * 1.0) * 12.) as u64;
                         self.cargo.push((Resources::Metals, amount));
                         self.target_pos = (2.0 + (MINES_BOX.0 + rand() as i32 % 33) as f32, 0.0); // Reset target to home after mining
                         asteroid.drilling = false; // Stop drilling animation
@@ -240,7 +240,7 @@ impl Drone {
                     }
                 } else if let Some(asteroid) = {
                     let matching_asteroids: Vec<_> = field
-                        .asteroids
+                        .asteroids[0]
                         .iter()
                         .filter(|a| a.angle < 2.3 && a.radius < 2040.0)
                         .collect();
@@ -256,11 +256,11 @@ impl Drone {
                     self.target_pos = asteroid.pos;
                 }
             } else if self.cargo.is_empty() && !done {
-                if let Some(asteroid) = field.asteroids.iter_mut().find(|a| a.id == self.asteroid_id) {
+                if let Some(asteroid) = field.asteroids[0].iter_mut().find(|a| a.id == self.asteroid_id) {
                     self.target_pos = asteroid.pos;
                 } else if let Some(asteroid) = {
                     let matching_asteroids: Vec<_> = field
-                    .asteroids
+                    .asteroids[0]
                     .iter()
                     .filter(|a| a.angle < 2.3 && a.radius < 2040.0)
                         .collect();

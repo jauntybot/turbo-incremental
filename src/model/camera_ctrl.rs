@@ -3,14 +3,14 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct CameraCtrl {
     pub zoom_tick: usize,
-    dragging: bool,
+    pub dragging: bool,
     pub last_pointer_pos: (i32, i32),
     pub pos: (i32, i32),
     pub velocity: (i32, i32), 
 }
 impl CameraCtrl {
     pub fn load() -> Self {
-        camera::set_xy(320, 200);
+        //camera::set_xy(320, 296);
         CameraCtrl {
             zoom_tick: 0,
             dragging: false,
@@ -48,7 +48,6 @@ impl CameraCtrl {
             if self.pos.1 < 0 { self.pos.1 = 0; }
             else if self.pos.1 > 480 { self.pos.1 = 480; }
         }
-        camera::set_xy(self.pos.0, self.pos.1);
         
         if gp.a.just_pressed() || gp.b.just_pressed() {
             self.zoom_tick = tick();
@@ -57,7 +56,7 @@ impl CameraCtrl {
             camera::move_zoom(1.0);
             if camera::zoom() >= 3.0 { camera::set_zoom(4.0); } 
             self.zoom_tick = tick();
-        } else if gp.b.pressed() && camera::zoom() > 1.0 && (tick() - self.zoom_tick) % 5 == 0 {
+        } else if gp.b.pressed() && camera::zoom() > 0.5 && (tick() - self.zoom_tick) % 5 == 0 {
             camera::move_zoom(-1.0);
             if camera::zoom() <= 1.0 { camera::set_zoom(1.0); }
             if camera::zoom() == 3.0 { camera::set_zoom(2.0); }
@@ -98,8 +97,8 @@ impl CameraCtrl {
 
         if self.pos.1 < 0 {
             self.pos.1 = 0;
-        } else if self.pos.1 > 400 {
-            self.pos.1 = 400;
+        } else if self.pos.1 > 480 {
+            self.pos.1 = 480;
         }
 
         // Apply damping to gradually reduce velocity
@@ -112,6 +111,10 @@ impl CameraCtrl {
         // } else if p.scroll_y() < 0.0 && camera::zoom() > 1.0 {
         //     camera::move_zoom(-1.0);
         // }
+    }
+
+    pub fn update_cam(&self) {
+        camera::set_xy(self.pos.0, self.pos.1);
     }
 
 }

@@ -5,40 +5,85 @@ pub struct Player {
     pub resources: Vec<(Resources, u64)>,
     pub xy: (f32, f32),
     target_pos: (f32, f32),
+    dir: f32,
 
     pub camera: CameraCtrl,
 
     scans: Vec<Scan>,
     prestiged: bool,
+    jumping: bool,
+    jump_timer: u32,
+    gate_aligned: bool,
 }
 
 impl Player {
     pub fn load() -> Self {
         Player {
             resources: vec![
-                (Resources::Research, 4000000000),
-                (Resources::Metals, 4000000000),
-                (Resources::Power, 4000000000),
+                // (Resources::Research, 4000000000),
+                // (Resources::Metals, 4000000000),
+                // (Resources::Power, 4000000000),
             ],
             xy: (320., 600.),
             target_pos: (0., 0.),
+            dir: 0.,
 
             camera: CameraCtrl::load(),
             scans: vec![],
             prestiged: false,
+            jumping: false,
+            jump_timer: 0,
+            gate_aligned: false,
         }
     } 
 
-    pub fn update(&mut self) {
-        self.target_pos = camera::xy();
-        self.xy.0 = self.xy.0 as f32 + (self.target_pos.0 - self.xy.0) as f32 * 0.1;
-        self.xy.1 = self.xy.1 as f32 + (self.target_pos.1 - self.xy.1) as f32 * 0.1;
-        
-        self.camera.update();
+    pub fn update(&mut self, event_manager: &mut EventManager) {
+        if !self.jumping {
+            self.target_pos = camera::xy();
+            
+            self.xy.0 = self.xy.0 as f32 + (self.target_pos.0 - self.xy.0) as f32 * 0.1;
+            self.xy.1 = self.xy.1 as f32 + (self.target_pos.1 - self.xy.1) as f32 * 0.1;
+            
+            let dx = self.target_pos.0 - self.xy.0;
+            let dy = self.target_pos.1 - self.xy.1;
+            let angle = dy.atan2(dx).to_degrees(); // Angle in radians
 
-        self.scans.retain_mut(|scan| {
-            scan.update(self.xy)
-        });
+            // Map the angle to a direction (0-7 for 8 directions)
+            self.dir = angle + 90.;
+            
+            self.camera.update();
+            self.camera.update_cam();
+
+            self.scans.retain_mut(|scan| {
+                scan.update(self.xy)
+            });
+
+        } else {
+            self.jump(event_manager);
+        }
+    }
+
+    pub fn jump(&mut self, event_manager: &mut EventManager) {
+        if !self.gate_aligned {
+            //log!("aligning");
+            self.target_pos = ((GATE_BOX.0 + GATE_BOX.2/2) as f32, (GATE_BOX.1 - 16) as f32);
+            self.xy.0 = self.xy.0 as f32 + (self.target_pos.0 - self.xy.0) as f32 * 0.1;
+            self.xy.1 = self.xy.1 as f32 + (self.target_pos.1 - self.xy.1) as f32 * 0.1;
+            let distance_to_target = (
+                self.target_pos.0 - self.xy.0,
+                self.target_pos.1 - self.xy.1,
+            );
+            if distance_to_target.0.abs() < 1.0 {
+                self.gate_aligned = true;
+            }
+        } else {
+            self.jump_timer += 1;
+            self.xy.1 += self.jump_timer as f32 / 1.;
+            if self.jump_timer == 150 {
+                event_manager.trigger(Event::EndGame);
+                self.jump_timer += 100;
+            }
+        }
     }
 
     pub fn collect(&mut self, resource: (Resources, u64)) {
@@ -100,6 +145,15 @@ impl Player {
         }
     }
 
+    pub fn handle_event(&mut self, event: &Event) {
+        match event {
+            Event::Prestige => {
+                self.jumping = true;
+            }
+            _ => {}
+        }
+    }
+
     pub fn scan(&mut self) {
         let pp = pointer().xy();
         let pos = (pp.0 as f32 + 5., pp.1 as f32 - 5.);
@@ -110,12 +164,26 @@ impl Player {
         for scan in self.scans.iter() {
             scan.draw();
         }
-        circ!(x = self.xy.0 - 8., y = self.xy.1 - 8., diameter = 16, color = 0xdf7126ff);
+        // rect!( 
+        //     xy = (self.xy.0 - 8., self.xy.1 - 8.),
+        //     wh = (16, 16),
+        // );
+
+        sprite!(
+            "player", 
+            xy = (self.xy.0 - 8., self.xy.1 - 8.),
+            rotation = self.dir,
+        );
 
         PlayerDisplay::draw(&self.resources);
     }
 }
 
+impl Default for Player {
+    fn default() -> Self {
+        Player::load()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct PlayerDisplay {}

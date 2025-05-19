@@ -83,7 +83,7 @@ impl AsteroidMines {
         // Produce based on drone update
         for drone in self.drones.iter_mut() {
             if drone.update_mining(field) {
-                let amount =  ((1. + self.drone_level as f32 * 1.0) * 8.).round() as u64;
+                let amount =  ((1. + self.drone_level as f32 * 1.2) * 15.).round() as u64;
                 produced.1 += amount;
                 self.collections.push(Collection::new(drone.pos, (Resources::Metals, amount)));
             }
@@ -122,17 +122,20 @@ impl AsteroidMines {
             }
         }
 
+        // if self.hovered {
+        //     rect!(
+        //         x = self.hitbox.x() - 1, 
+        //         y = self.hitbox.y() - 1, 
+        //         wh = (self.hitbox.w() + 2, self.hitbox.w() + 2), 
+        //         border_radius = 4,
+        //         color = 0xffffffff
+        //     ); 
+        // }
+
         // outline
         if self.hovered {
-            rect!(
-                x = self.hitbox.x() - 1, 
-                y = self.hitbox.y() - 1, 
-                wh = (self.hitbox.w() + 2, self.hitbox.w() + 2), 
-                border_radius = 4,
-                color = 0xffffffff
-            ); 
+            sprite!("mines_hovered", xy = self.hitbox.xy());
         }
-
         // main GFX
         sprite!("mines", xy = self.hitbox.xy());
 
@@ -143,8 +146,8 @@ impl AsteroidMines {
         }
 
         if !self.unlocked { 
-            rect!(xy = self.hitbox.translate(-32, -6).center(), wh = (64, 12), color = 0x222034ff);
-            text!("LOCKED", xy = self.hitbox.translate(-15,-3).center(), color = 0xffffffff);       
+            sprite!("mines_locked", xy = self.hitbox.xy());
+            text!("LOCKED", xy = self.hitbox.translate(-16,2).center(), color = 0xffffffff);       
         }
 
         // Draw collection numbers

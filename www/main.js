@@ -442,7 +442,7 @@ async function run() {
   // Initialize context.
   const canvas = document.createElement("canvas");
   canvas.width = 640;
-  canvas.height = 480;
+  canvas.height = 400;
 
   // Initialize nipple (aka virtual analog stick).
   fillText(context, "Initializing touch controls...");

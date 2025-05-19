@@ -44,7 +44,7 @@ impl Sfx {
         let mut instance = SFX.lock().unwrap();
     }
 
-    pub fn update(&mut self, state: &mut GameState) {
+    pub fn update(&mut self, event_manager: &mut EventManager) {
         let p = pointer();
         self.menu_button.update();
         if self.menu_button.on_click() {
@@ -66,12 +66,11 @@ impl Sfx {
             }
             self.save_button.update();
             if self.save_button.on_click() {
-                state.save_local();
+                event_manager.trigger(Event::SaveGame);
             }
             self.reset_button.update();
             if self.reset_button.on_click() {
-                self.menu = false;
-                *state = GameState::new();
+                event_manager.trigger(Event::ResetGame);
             }
             self.autosave_toggle.update();
             if self.autosave_toggle.on_click() {

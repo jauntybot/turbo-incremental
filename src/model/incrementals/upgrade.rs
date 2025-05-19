@@ -45,7 +45,17 @@ impl CostFormula {
             CostFormula::Exponential => {
                 let mut new_cost = vec![];
                 for cost in base_cost.iter() {
-                    let prod = (cost.1 as f64 * (1.2f64).powi(n as i32)).ceil() as u64;
+                    let prod= (cost.1 as f32 * (1.1 as f32).powf(n as f32)) as u64;
+                    // if n <= 5 {
+                    //     prod = (cost.1 as f32 * (1.07 as f32).powf(n as f32)) as u64;
+                    // } else if n <= 20 {
+                    //     prod = (cost.1 as f32 * (1.1 as f32).powf(n as f32)) as u64;
+                    // } else if n <= 40 {
+                    //     prod = (cost.1 as f32 * (1.15 as f32).powf(n as f32)) as u64;
+                    // } else {
+                    //     prod = (cost.1 as f32 * (1.2 as f32).powf(n as f32)) as u64;
+                    // } 
+
                     new_cost.push((cost.0.clone(), prod));
                 }
                 new_cost

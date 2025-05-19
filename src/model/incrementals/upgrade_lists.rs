@@ -127,8 +127,8 @@ pub static DEPOT_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
     },
     Upgrade {
         name: "CARGO CAPACITY".to_string(),
-        description: "Increase the amount of METALS gathered by MAKER DRONES by 50%.".to_string(),
-        cost: vec![(Resources::Metals, 320)],
+        description: "Increase the amount of METALS gathered by MAKER DRONES by 75%.".to_string(),
+        cost: vec![(Resources::Metals, 860)],
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         level: 0,
         max_level: 30,
@@ -138,7 +138,7 @@ pub static DEPOT_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
         hovered: false,
         display_lvl: true,
         cost_formula: CostFormula::Double,
-        base_cost: vec![(Resources::Metals, 320)],
+        base_cost: vec![(Resources::Metals, 860)],
     },
     Upgrade {
         name: "PLASMA TOOLS".to_string(),
@@ -190,8 +190,8 @@ pub static MINES_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
     },
     Upgrade {
         name: "DRILL AUGMENT".to_string(),
-        description: "Increase the amount of METALS gathered by MINING DRONES by 100%.".to_string(),
-        cost: vec![(Resources::Metals, 100)],
+        description: "Increase the amount of METALS gathered by MINING DRONES by 120%.".to_string(),
+        cost: vec![(Resources::Metals, 120)],
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         level: 0,
         max_level: 20,
@@ -201,7 +201,7 @@ pub static MINES_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
         hovered: false,
         display_lvl: true,
         cost_formula: CostFormula::Double,
-        base_cost: vec![(Resources::Metals, 100)],
+        base_cost: vec![(Resources::Metals, 120)],
     },
     Upgrade {
         name: "ADV. THRUSTERS".to_string(),
@@ -224,7 +224,7 @@ pub static POWER_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
     Upgrade {
         name: "CONSTRUCT".to_string(),
         description: "Construct POWER PLANT.".to_string(),
-        cost: vec![(Resources::Research, 6400), (Resources::Metals, 800)],
+        cost: vec![(Resources::Research, 2400), (Resources::Metals, 800)],
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         level: 0,
         max_level: 1,
@@ -253,8 +253,8 @@ pub static POWER_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
     },
     Upgrade {
         name: "REFLECTOR CELLS".to_string(),
-        description: "Increase the amount of POWER gathered by CONDUIT DRONES by 55%.".to_string(),
-        cost: vec![(Resources::Metals, 100)],
+        description: "Increase the amount of POWER gathered by CONDUIT DRONES by 75%.".to_string(),
+        cost: vec![(Resources::Metals, 220)],
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         level: 0,
         max_level: 100,
@@ -264,7 +264,7 @@ pub static POWER_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
         hovered: false,
         display_lvl: true,
         cost_formula: CostFormula::Double,
-        base_cost: vec![(Resources::Metals, 100)],
+        base_cost: vec![(Resources::Metals, 220)],
     },
     Upgrade {
         name: "ARC BATTERIES".to_string(),
@@ -286,8 +286,8 @@ pub static POWER_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
 pub static GATE_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
     Upgrade {
         name: "CONSTRUCT".to_string(),
-        description: "Construct POWER PLANT.".to_string(),
-        cost: vec![(Resources::Research, 6400), (Resources::Metals, 800)],
+        description: "Construct JUMP GATE.".to_string(),
+        cost: vec![(Resources::Research, 240_000), (Resources::Metals, 90_000), (Resources::Power, 50_000)],
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         level: 0,
         max_level: 1,
@@ -297,12 +297,12 @@ pub static GATE_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
         hovered: false,
         display_lvl: false,
         cost_formula: CostFormula::None,
-        base_cost: vec![(Resources::Research, 0)],
+        base_cost: vec![(Resources::Research, 240_000), (Resources::Metals, 90_000), (Resources::Power, 50_000)],
     },
     Upgrade {
         name: "JUMP TO NEXT SECTOR".to_string(),
-        description: "Prestige. Improve your drone's abilities but reset your progress.".to_string(),
-        cost: vec![(Resources::Research, 240_000), (Resources::Metals, 120_000), (Resources::Power, 80_000)],
+        description: "End game. Proceed to next sector and start again.".to_string(),
+        cost: vec![], //vec![(Resources::Research, 240_000), (Resources::Metals, 90_000), (Resources::Power, 50_000)],
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         level: 0,
         max_level: 1,
@@ -312,7 +312,7 @@ pub static GATE_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
         hovered: false,
         display_lvl: false,
         cost_formula: CostFormula::None,
-        base_cost: vec![(Resources::Research, 240_000), (Resources::Metals, 120_000), (Resources::Power, 80_000)],
+        base_cost: vec![], //vec![(Resources::Research, 240_000), (Resources::Metals, 120_000), (Resources::Power, 80_000)],
     },
 ]);
 

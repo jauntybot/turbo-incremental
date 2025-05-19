@@ -6,6 +6,7 @@ pub use model::*;
 turbo::init!(
     struct GameState {
         player: Player,
+        vignette: Vignette,
         event_manager: EventManager,
         exoplanet: Exoplanet,
         drone_depot: DroneDepot,
@@ -20,18 +21,20 @@ turbo::init!(
 
 impl GameState {
     pub fn new() -> Self {
-        let state = GameState {  
+        let mut state = GameState {  
             player: Player::load(),
+            vignette: Vignette::new(),
             event_manager: EventManager::new(),
             exoplanet: Exoplanet::load(),
             drone_depot: DroneDepot::load(),
-            asteroid_field: AsteroidField::new(250, 20),
+            asteroid_field: AsteroidField::new(),
             asteroid_mines: AsteroidMines::load(),
             nebula_storm: NebulaStorm::new(),
             power_plant: PowerPlant::load(),
             jumpgate: Jumpgate::load(),
             research_complex: ResearchComplex::load(),
         };
+        state.vignette.fade = false;
         state.save_local();
         state
     }
@@ -50,15 +53,6 @@ impl GameState {
         GameState::try_from_slice(&data).unwrap_or_else(|_| GameState::new())
     }
 
-    pub fn handle_event(&mut self, event: &Event) {
-        match event {
-            Event::SaveGame => {
-                self.save_local();
-            }
-            _ => {}
-        }
-    }
-
 }
 
 // This is where your main game loop code goes
@@ -72,14 +66,22 @@ turbo::go! ({
             sprite!("bg", xy = (x * 640, -80 + y * 640));
         }
     }
-    text!("pos: ({}, {}), target: ({}, {}), last: ({}, {})", state.player.camera.pos.0, state.player.camera.pos.1, camera::x(), camera::y(), state.player.camera.last_pointer_pos.0, state.player.camera.last_pointer_pos.1; fixed = true, y = 28);
+    //text!("pos: ({}, {}), target: ({}, {}), last: ({}, {})", state.player.camera.pos.0, state.player.camera.pos.1, camera::x(), camera::y(), state.player.camera.last_pointer_pos.0, state.player.camera.last_pointer_pos.1; fixed = true, y = 28);
     //rect!(xy = (0, 0), wh = (640, 400), border_size = 1, color = 0xffffff00, border_color = 0xffffffff);
+    
     if state.event_manager.dialogue.is_none() {
-        state.player.update();
+        state.player.update(&mut state.event_manager);
+    } else {
+        state.player.camera.update_cam(); // Only update the camera
     }
     state.asteroid_field.update();
-    state.asteroid_field.draw();
+    if state.asteroid_mines.unlockable {
+        state.asteroid_field.draw();
+    }
     state.nebula_storm.update();
+    if state.power_plant.unlockable {
+        state.nebula_storm.draw();
+    }
 
     state.exoplanet.update(&mut state.player, &mut state.event_manager);
     state.exoplanet.draw();
@@ -89,8 +91,8 @@ turbo::go! ({
     }
     if state.drone_depot.unlockable {
         state.drone_depot.update(&mut state.player, &mut state.event_manager);
+        state.drone_depot.draw();
     }
-    state.drone_depot.draw();
     if state.power_plant.unlockable {
         state.power_plant.update(&mut state.player, &mut state.event_manager, &mut state.nebula_storm);
         state.power_plant.draw();
@@ -105,30 +107,53 @@ turbo::go! ({
     }
 
     // Event subscribers
+    let mut reset = false;
+    let mut save = false;
     state.event_manager.process_events(|event| {
         //state.handle_event(event);
+        state.player.handle_event(event);
+        state.vignette.handle_event(event);
         state.exoplanet.handle_event(event);
         state.drone_depot.handle_event(event);
         state.asteroid_mines.handle_event(event);
         state.power_plant.handle_event(event);
         state.jumpgate.handle_event(event);
         state.research_complex.handle_event(event);
+        match event {
+            Event::ResetGame => {
+                reset = true;
+            }
+            Event::SaveGame => {
+                save = true;
+            }
+            Event::EndGame => {
+                state.vignette.fade = true;
+                reset = true;
+            }
+            _ => {}
+        }
     });
+    if reset {
+        state = GameState::new();
+    }
+    if save {
+        state.save_local();
+    }
     
-    sfx.update(&mut state);
+    sfx.update(&mut state.event_manager);
+    state.vignette.update();
 
+    // Drawing
+    state.vignette.draw();
     state.player.draw();
-
+    state.event_manager.update(&mut state.player);
+    
     state.exoplanet.draw_ui();
     state.drone_depot.draw_ui();
     state.asteroid_mines.draw_ui();
     state.power_plant.draw_ui();
 
     sfx.draw();
-
-    if state.event_manager.dialogue.is_some() {
-        state.event_manager.update(&mut state.player);
-    }
 
     if sfx.autosave && tick() % 1000 == 0 {
         state.save_local();

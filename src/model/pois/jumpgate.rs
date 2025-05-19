@@ -118,17 +118,11 @@ impl Jumpgate {
 
         // outline
         if self.hovered {
-            rect!(
-                x = self.hitbox.x() - 1, 
-                y = self.hitbox.y() - 1, 
-                wh = (self.hitbox.w() + 2, self.hitbox.w() + 2), 
-                border_radius = 4,
-                color = 0xffffffff
-            ); 
+            sprite!("gate_hovered", xy = self.hitbox.xy());
         }
 
         // main GFX
-        sprite!("mines", xy = self.hitbox.xy());
+        sprite!("gate", xy = self.hitbox.xy());
 
         for drone in self.drones.iter() {
             if drone.front {
@@ -137,7 +131,8 @@ impl Jumpgate {
         }
 
         if !self.unlocked { 
-            text!("LOCKED", xy = (self.hitbox.x() + 4, self.hitbox.y() + 4), color = 0xffffffff);       
+            sprite!("gate_locked", xy = self.hitbox.xy());
+            text!("LOCKED", xy = self.hitbox.translate(-15,-3).center(), color = 0xffffffff);  
         }
 
         if self.hovered {

@@ -45,7 +45,6 @@ impl Nebulous {
     pub fn update(&mut self) {
         
         if self.counter%120 == 0 {
-            self.make_array();
             self.make_segments();
         }
 
@@ -64,23 +63,6 @@ impl Nebulous {
         self.counter += 1;  
     }
 
-    fn make_array(&mut self) {
-        self.flow_array.clear();
-        let angle_start = std::f32::consts::FRAC_PI_2;
-
-        for r in (self.radius_min as usize..=self.radius_max as usize).step_by(self.gap as usize) {
-            for a in (0..=90).step_by(6) {
-                let angle = angle_start + (a as f32 * std::f32::consts::PI / 180.0);
-                let radius = r as f32;
-
-                let x = self.center.0 + radius * angle.cos() * 2. + rand() as f32 % self.start_vary - self.start_vary / 2.0;
-                let y = self.center.1 + radius * angle.sin() * 2. + rand() as f32 % self.start_vary - self.start_vary / 2.0;
-
-                let color = animated_gradient_color(x, y, tick() as f32, self.center, self.radius_max);
-                self.flow_array.push((x, y, color));
-            }
-        }
-    }
 
     fn make_segments(&mut self) {
         if self.segments.len() > self.flow_array.len() * 5 {
@@ -135,23 +117,6 @@ impl Nebulous {
             //     color = segment.color,
             // );
         }
-    }
-
-    fn vary_rgb(hex: u32, range: i8) -> u32 {
-        let r = ((hex >> 16) & 0xFF) as u8;
-        let g = ((hex >> 8) & 0xFF) as u8;
-        let b = (hex & 0xFF) as u8;
-    
-        let vary = |channel: u8| -> u8 {
-            let val = rand() as i8 % (2 * range + 1) - range;
-            channel.saturating_add_signed(val)
-        };
-    
-        let new_r = vary(r);
-        let new_g = vary(g);
-        let new_b = vary(b);
-    
-        (255 << 24) | ((new_r as u32) << 16) | ((new_g as u32) << 8) | (new_b as u32)
     }
 }
 
