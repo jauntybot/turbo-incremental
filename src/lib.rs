@@ -6,7 +6,7 @@ pub use model::*;
 turbo::init!(
     struct GameState {
         player: Player,
-        vignette: Vignette,
+        //vignette: Vignette,
         event_manager: EventManager,
         exoplanet: Exoplanet,
         drone_depot: DroneDepot,
@@ -23,7 +23,7 @@ impl GameState {
     pub fn new() -> Self {
         let mut state = GameState {  
             player: Player::load(),
-            vignette: Vignette::new(),
+            //vignette: Vignette::new(),
             event_manager: EventManager::new(),
             exoplanet: Exoplanet::load(),
             drone_depot: DroneDepot::load(),
@@ -34,7 +34,7 @@ impl GameState {
             jumpgate: Jumpgate::load(),
             research_complex: ResearchComplex::load(),
         };
-        state.vignette.fade = false;
+        //state.vignette.fade = false;
         state.save_local();
         state
     }
@@ -112,7 +112,7 @@ turbo::go! ({
     state.event_manager.process_events(|event| {
         //state.handle_event(event);
         state.player.handle_event(event);
-        state.vignette.handle_event(event);
+        //state.vignette.handle_event(event);
         state.exoplanet.handle_event(event);
         state.drone_depot.handle_event(event);
         state.asteroid_mines.handle_event(event);
@@ -127,7 +127,7 @@ turbo::go! ({
                 save = true;
             }
             Event::EndGame => {
-                state.vignette.fade = true;
+                //state.vignette.fade = true;
                 reset = true;
             }
             _ => {}
@@ -141,10 +141,10 @@ turbo::go! ({
     }
     
     sfx.update(&mut state.event_manager);
-    state.vignette.update();
+    //state.vignette.update();
 
     // Drawing
-    state.vignette.draw();
+    //state.vignette.draw();
     state.player.draw();
     state.event_manager.update(&mut state.player);
     

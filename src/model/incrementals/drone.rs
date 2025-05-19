@@ -147,6 +147,7 @@ impl Drone {
         if self.on_site {
             self.timer += 1. * (1. + self.speed as f32 * 0.2);
             let angle = (self.timer / self.interval) * std::f32::consts::TAU; // TAU = 2 * PI
+            
             self.target_pos = (
                 home.0 + (16. + self.phase * 32.) * angle.sin(),
                 home.1 + (16. + self.phase * 32.) * angle.cos(),
