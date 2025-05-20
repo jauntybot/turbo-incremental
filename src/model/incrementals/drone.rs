@@ -37,10 +37,10 @@ impl Drone {
             target_pos: (target_pos.0 as f32, target_pos.1 as f32),
             front: true,
             interval: match mode {
-                DroneMode::Survey => 1000.,
-                DroneMode::Mining => 600.,
-                DroneMode::Shipping => 400.,
-                DroneMode::Conduit => 500.,
+                DroneMode::Survey => 8000.,
+                DroneMode::Mining => 500.,
+                DroneMode::Shipping => 300.,
+                DroneMode::Conduit => 400.,
             },
             mode,
             timer: 0.,
@@ -71,7 +71,7 @@ impl Drone {
             }
         } else {
             self.target_pos = ((PLANT_BOX.0 + PLANT_BOX.2/2) as f32, (PLANT_BOX.1 + PLANT_BOX.3/2) as f32);
-            self.on_site = self.follow(0.2); 
+            self.on_site = self.follow(0.1); 
         }
         false
     }
@@ -97,7 +97,7 @@ impl Drone {
             center.0 + radius * angle.cos(),
             center.1 + radius * angle.sin(),
         );
-        self.follow(0.05);
+        self.follow(0.1);
         false
     }
 
@@ -114,43 +114,52 @@ impl Drone {
         let raw_oscillation = ((self.timer as f32 / self.interval as f32) * std::f32::consts::TAU).sin();
         let oscillation = 0.25 + 0.75 * (0.5 + 0.5 * raw_oscillation); // Oscillates between 0.75 and 1.0
 
-        // Calculate the position on the ellipse with oscillation
-        self.pos.0 = center.0 + radius_x * angle.cos();
-        self.pos.1 = center.1 + radius_y * oscillation * angle.sin();
-
-        self.front = self.pos.1 >= center.1;
-
-        self.timer += 1. * (1. + self.speed as f32 * 0.1);
-        let delta = (self.timer as f32 - self.interval as f32).abs() % (self.interval as f32/2.);
-        if delta <= 1.0 && self.scan.is_none() {
-            let scan = (center.0 + 32. * angle.cos(), center.1 + 32. * oscillation * angle.sin()); 
-            self.scan = Some(Scan::new(self.pos, scan));
-            return true;
-        }
-        if self.timer >= self.interval {
-            self.timer = 0.;
-        }
-
-        if let Some(scan) = &mut self.scan {
-            if !scan.update(self.pos) {
-                self.scan = None;
+        if self.on_site {
+            // Calculate the position on the ellipse with oscillation
+            self.pos.0 = center.0 + radius_x * angle.cos();
+            self.pos.1 = center.1 + radius_y * oscillation * angle.sin();
+    
+            self.front = self.pos.1 >= center.1;
+    
+            self.timer += 1. * (1. + self.speed as f32 * 0.1);
+            let delta = (self.timer as f32 - self.interval as f32).abs() % (self.interval as f32/2.);
+            if delta <= 1.0 && self.scan.is_none() {
+                let scan = (center.0 + 32. * angle.cos(), center.1 + 32. * oscillation * angle.sin()); 
+                self.scan = Some(Scan::new(self.pos, scan));
+                return true;
             }
-        } 
-        false
+            if self.timer >= self.interval {
+                self.timer = 0.;
+            }
+    
+            if let Some(scan) = &mut self.scan {
+                if !scan.update(self.pos) {
+                    self.scan = None;
+                }
+            } 
+            false
+        } else {
+            self.target_pos = (center.0 + radius_x * angle.cos(),
+                center.1 + radius_y * oscillation * angle.sin());
+            if self.follow(0.1) {
+                self.on_site = true;
+            }
+            false
+        }
     }
 
     pub fn shipping(&mut self) -> Option<(Resources, u64)> {
         // Define the start and bounds for the random target
         let home = ((DEPOT_BOX.0 + DEPOT_BOX.2/2) as f32, (DEPOT_BOX.1 + DEPOT_BOX.3 - 8) as f32);
-        let mines = ((MINES_BOX.0 + MINES_BOX.2/2) as f32, (MINES_BOX.1 + 2*MINES_BOX.3/3) as f32);
+        let mines = ((MINES_BOX.0 + MINES_BOX.2/2) as f32 -6. - (self.phase * 2.).round() * 8., (MINES_BOX.1 + 2*MINES_BOX.3/3) as f32);
         
         if self.on_site {
             self.timer += 1. * (1. + self.speed as f32 * 0.2);
             let angle = (self.timer / self.interval) * std::f32::consts::TAU; // TAU = 2 * PI
             
             self.target_pos = (
-                home.0 + (16. + self.phase * 32.) * angle.sin(),
-                home.1 + (16. + self.phase * 32.) * angle.cos(),
+                home.0 + (8. + self.phase * 16.) * angle.sin(),
+                home.1 + (8. + self.phase * 16.) * angle.cos(),
             );
             self.follow(0.1);
             // if self.phase % 0.02 == 0.0 {
@@ -224,18 +233,18 @@ impl Drone {
                 return true;
             }
         } else {
-            let done = self.follow(0.05);
+            let done = self.follow(0.15);
             if self.cargo.is_empty() && done {
                 if let Some(asteroid) = field.asteroids[0].iter_mut().find(|a| a.id == self.asteroid_id) {
                     // Active mining
-                    self.timer += 1. * (1.0 + self.speed as f32 * 0.05);
+                    self.timer += 1. * (1.0 + self.speed as f32 * 0.15);
                     asteroid.drilling = true; // Start drilling animation
                     self.target_pos = asteroid.pos;
                     if self.timer >= self.interval {
                         self.timer = 0.;
                         let amount = ((1. + self.level as f32 * 1.0) * 12.) as u64;
                         self.cargo.push((Resources::Metals, amount));
-                        self.target_pos = (2.0 + (MINES_BOX.0 + rand() as i32 % 33) as f32, 0.0); // Reset target to home after mining
+                        self.target_pos = (15.0 + (MINES_BOX.0 + rand() as i32 % 33) as f32, 0.0); // Reset target to home after mining
                         asteroid.drilling = false; // Stop drilling animation
                         
                     }

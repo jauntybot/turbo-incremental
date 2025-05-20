@@ -131,7 +131,9 @@ impl AsteroidMines {
         //         color = 0xffffffff
         //     ); 
         // }
-
+        if !self.unlocked { 
+            sprite!("mines_locked_outline", xy = self.hitbox.xy());
+        }
         // outline
         if self.hovered {
             sprite!("mines_hovered", xy = self.hitbox.xy());

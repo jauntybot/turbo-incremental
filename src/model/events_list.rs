@@ -65,7 +65,7 @@ pub static CUTSCENES: Lazy<Vec<Dialogue>> = Lazy::new(|| vec![
     Dialogue {
         messages: vec![
             "Jumpgate initiated. Prepare for imminent jump.".to_string(),
-            "Good work, researcher. There's more work in the next sector!.".to_string(),
+            "Good work, researcher. There's more work in the next sector!".to_string(),
         ],
         camera_pos: vec![((GATE_BOX.0 + GATE_BOX.2/2, GATE_BOX.1 - 16), 0)], // ((COMPLEX_BOX.0 + COMPLEX_BOX.2/2, COMPLEX_BOX.1 + COMPLEX_BOX.3/2), 2),
         d_box: DialogueBox::new(),

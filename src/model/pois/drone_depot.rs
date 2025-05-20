@@ -157,7 +157,10 @@ impl DroneDepot {
     }
 
     pub fn draw(&self) {
-                // outline
+        if !self.unlocked { 
+            sprite!("depot_locked_outline", xy = self.hitbox.xy());
+        }
+        // outline
         if self.hovered {
             sprite!("depot_hovered", xy = self.hitbox.xy());
             if self.fabricator_unlocked {

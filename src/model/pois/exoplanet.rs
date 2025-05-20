@@ -74,10 +74,12 @@ impl Exoplanet {
             }
             // Manually produce resources every 30 ticks
             if self.collecting && tick() - self.clicked_at >= self.collect_interval {
-                produced.1 += self.manual_produce();
-                player.scan();
-                self.clicked_at = tick();
                 if !self.hitbox.intersects_xy(rp) || p.released() { self.collecting = false; }
+                else {
+                    self.clicked_at = tick();
+                    produced.1 += self.manual_produce();
+                    player.scan();
+                }
             }
         }
 
@@ -167,7 +169,7 @@ impl POI for Exoplanet {
         let mut produced = 0;
         for drone in self.drones.iter_mut() {
             if drone.survey() {
-                let amount =  ((1.0 + self.drone_level as f32 * 0.8) * 18.) as u64;
+                let amount =  ((1.0 + self.drone_level as f32 * 0.8) * 20.) as u64;
                 produced += amount;
                 self.collections.push(Collection::new(drone.pos, (Resources::Research, amount)));
             }

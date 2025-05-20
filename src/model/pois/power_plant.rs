@@ -78,7 +78,7 @@ impl PowerPlant {
 
         for drone in self.drones.iter_mut() {
             if drone.conduit(nebula) {
-                let amount =  (1.0 + self.drone_level as f32 * 0.75 * 8.) as u64;
+                let amount =  (1.0 + self.drone_level as f32 * 0.9 * 12.) as u64;
                 produced.1 += amount;
                 self.collections.push(
                     Collection::new(
@@ -135,6 +135,9 @@ impl PowerPlant {
         //     color = 0xac3232ff
         // );
         
+        if !self.unlocked { 
+            sprite!("plant_locked_outline", xy = self.hitbox.xy());
+        }
         // outline
         if self.hovered {
             sprite!("plant_hovered", xy = self.hitbox.xy());
@@ -151,10 +154,6 @@ impl PowerPlant {
 
         if !self.unlocked { 
             sprite!("plant_locked", xy = self.hitbox.xy());
-            if self.hovered {
-                rect!(xy = self.hitbox.translate(-33, 13).center(), wh = (66, 14), color = 0xffffffff);
-            }
-            rect!(xy = self.hitbox.translate(-32, 14).center(), wh = (64, 12), color = 0x222034ff);
             text!("LOCKED", xy = self.hitbox.translate(-15, 17).center(), color = 0xffffffff);   
         }
 

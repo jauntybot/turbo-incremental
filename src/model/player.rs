@@ -20,9 +20,9 @@ impl Player {
     pub fn load() -> Self {
         Player {
             resources: vec![
-                // (Resources::Research, 4000000000),
-                // (Resources::Metals, 4000000000),
-                // (Resources::Power, 4000000000),
+                (Resources::Research, 4000000000),
+                (Resources::Metals, 4000000000),
+                (Resources::Power, 4000000000),
             ],
             xy: (320., 600.),
             target_pos: (0., 0.),
@@ -47,9 +47,13 @@ impl Player {
             let dx = self.target_pos.0 - self.xy.0;
             let dy = self.target_pos.1 - self.xy.1;
             let angle = dy.atan2(dx).to_degrees(); // Angle in radians
-
-            // Map the angle to a direction (0-7 for 8 directions)
-            self.dir = angle + 90.;
+            let distance_to_target = (
+                self.target_pos.0 - self.xy.0,
+                self.target_pos.1 - self.xy.1,
+            );
+            if distance_to_target.0.abs() > 0.1 && distance_to_target.1.abs() > 0.1 {
+                self.dir = angle + 90.;
+            }
             
             self.camera.update();
             self.camera.update_cam();
@@ -78,10 +82,25 @@ impl Player {
             }
         } else {
             self.jump_timer += 1;
-            self.xy.1 += self.jump_timer as f32 / 1.;
+
+            // Rubber band up (decelerating motion)
+            if self.jump_timer <= 50 {
+                self.xy.1 -= (50 - self.jump_timer) as f32 * 0.15; // Move up slower as time progresses
+                self.dir += (180.0 - self.dir) * 0.1;
+            }
+            // Slingshot down (accelerating motion)
+            else if self.jump_timer <= 150 {
+                self.xy.1 += (self.jump_timer - 50) as f32 * 0.5; // Move down faster as time progresses
+            }
+
+            if self.xy.1 >= (GATE_BOX.1 + GATE_BOX.3/2 - 2) as f32 {
+                self.xy.1 += 400.;
+            }
+
+            // Trigger the end game event after the motion completes
             if self.jump_timer == 150 {
                 event_manager.trigger(Event::EndGame);
-                self.jump_timer += 100;
+                self.jump_timer += 100; // Prevent further updates
             }
         }
     }

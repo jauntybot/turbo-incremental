@@ -60,15 +60,16 @@ impl GameState {
 turbo::go! ({
     let mut state = GameState::load();
     let mut sfx = SFX.lock().unwrap();
-
+    
+    
     for x in -1..=1 {
         for y in -1..=1 {
             sprite!("bg", xy = (x * 640, -80 + y * 640));
         }
     }
-    //text!("pos: ({}, {}), target: ({}, {}), last: ({}, {})", state.player.camera.pos.0, state.player.camera.pos.1, camera::x(), camera::y(), state.player.camera.last_pointer_pos.0, state.player.camera.last_pointer_pos.1; fixed = true, y = 28);
+    // text!("pos: ({}, {}), target: ({}, {}), last: ({}, {})", state.player.camera.pos.0, state.player.camera.pos.1, camera::x(), camera::y(), state.player.camera.last_pointer_pos.0, state.player.camera.last_pointer_pos.1; fixed = true, y = 28);
     //rect!(xy = (0, 0), wh = (640, 400), border_size = 1, color = 0xffffff00, border_color = 0xffffffff);
-    
+
     if state.event_manager.dialogue.is_none() {
         state.player.update(&mut state.event_manager);
     } else {
@@ -146,7 +147,9 @@ turbo::go! ({
     // Drawing
     //state.vignette.draw();
     state.player.draw();
-    state.event_manager.update(&mut state.player);
+    if tick() > 250 {
+        state.event_manager.update(&mut state.player);
+    }
     
     state.exoplanet.draw_ui();
     state.drone_depot.draw_ui();
@@ -158,5 +161,21 @@ turbo::go! ({
     if sfx.autosave && tick() % 1000 == 0 {
         state.save_local();
     }
+    if tick() < 200 {
+        //camera::set_xy(320, 296);
+        let alpha = if tick() >= 150 {
+            255 - ((tick() - 150) * 255 / 50) as u8 // Linear fade from 255 to 0
+        } else {
+            255
+        };
+        let color = 0xFFFFFF00 | alpha as u32; // Place alpha in the lowest byte
+        sprite!(
+            "coolmath",
+            fixed = true,
+            xy = (0, 0),
+            color = color
+        );
+    }
+
     state.save();
 });

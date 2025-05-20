@@ -10,7 +10,7 @@ pub struct CameraCtrl {
 }
 impl CameraCtrl {
     pub fn load() -> Self {
-        //camera::set_xy(320, 296);
+        camera::set_xy(320, 240);
         CameraCtrl {
             zoom_tick: 0,
             dragging: false,
@@ -52,11 +52,11 @@ impl CameraCtrl {
         if gp.a.just_pressed() || gp.b.just_pressed() {
             self.zoom_tick = tick();
         }
-        if gp.a.pressed() && camera::zoom() < 4.0 && (tick() - self.zoom_tick) % 5 == 0 {
+        if (gp.a.pressed() || p.scroll_delta().1 < 0) && camera::zoom() < 4.0 && (tick() - self.zoom_tick) > 5 {
             camera::move_zoom(1.0);
             if camera::zoom() >= 3.0 { camera::set_zoom(4.0); } 
             self.zoom_tick = tick();
-        } else if gp.b.pressed() && camera::zoom() > 0.5 && (tick() - self.zoom_tick) % 5 == 0 {
+        } else if (gp.b.pressed() || p.scroll_delta().1 > 0) && camera::zoom() > 0.5 && (tick() - self.zoom_tick) > 5 {
             camera::move_zoom(-1.0);
             if camera::zoom() <= 1.0 { camera::set_zoom(1.0); }
             if camera::zoom() == 3.0 { camera::set_zoom(2.0); }
@@ -104,13 +104,6 @@ impl CameraCtrl {
         // Apply damping to gradually reduce velocity
         self.velocity.0 = (self.velocity.0 as f32 * damping) as i32;
         self.velocity.1 = (self.velocity.0 as f32 * damping) as i32;
-
-        // Handle pointer input for zooming
-        // if p.scroll_y() > 0.0 && camera::zoom() < 4.0 {
-        //     camera::move_zoom(1.0);
-        // } else if p.scroll_y() < 0.0 && camera::zoom() > 1.0 {
-        //     camera::move_zoom(-1.0);
-        // }
     }
 
     pub fn update_cam(&self) {

@@ -116,6 +116,10 @@ impl Jumpgate {
             }
         }
 
+        
+        if !self.unlocked { 
+            sprite!("gate_locked_outline", xy = self.hitbox.xy());
+        }
         // outline
         if self.hovered {
             sprite!("gate_hovered", xy = self.hitbox.xy());
@@ -132,7 +136,7 @@ impl Jumpgate {
 
         if !self.unlocked { 
             sprite!("gate_locked", xy = self.hitbox.xy());
-            text!("LOCKED", xy = self.hitbox.translate(-15,-3).center(), color = 0xffffffff);  
+            text!("LOCKED", xy = self.hitbox.translate(-15,-4).center(), color = 0xffffffff);  
         }
 
         if self.hovered {

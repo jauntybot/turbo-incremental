@@ -446,7 +446,7 @@ async function run() {
 
   // Initialize nipple (aka virtual analog stick).
   fillText(context, "Initializing touch controls...");
-  initializeNipple(canvas);
+  //initializeNipple(canvas);
 
   // Initialize Gamepad Support.
   fillText(context, "Initializing gamepad...");
