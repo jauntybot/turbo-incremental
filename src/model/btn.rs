@@ -12,15 +12,15 @@ impl BtnState {
         match index {
             0 => match self {
                 BtnState::Disabled => (0x9badb7ff, 0x847e87ff, 0xffffffff),
-                BtnState::Normal => (0x222034ff, 0x222034ff, 0xffffffff),
+                BtnState::Normal => (0x1f122bff, 0x1f122bff, 0xffffffff),
                 BtnState::Hovered => (0x847e87ff, 0x847e87ff, 0xffffffff),
                 BtnState::Pressed => (0x847e87ff, 0xffffffff, 0x9badb7ff),
             },
             _ => match self {
-                BtnState::Disabled => (0x222034ff, 0x222034ff, 0x847e87ff),
-                BtnState::Normal => (0x222034ff, 0xffffffff, 0xffffffff),
-                BtnState::Hovered => (0xffffffff, 0x222034ff, 0x222034ff),
-                BtnState::Pressed => (0xffffffff, 0xffffffff, 0x222034ff),
+                BtnState::Disabled => (0x1f122bff, 0x1f122bff, 0x847e87ff),
+                BtnState::Normal => (0x1f122bff, 0xffffffff, 0xffffffff),
+                BtnState::Hovered => (0xffffffff, 0x1f122bff, 0x1f122bff),
+                BtnState::Pressed => (0xffffffff, 0xffffffff, 0x1f122bff),
             }
         }
     }

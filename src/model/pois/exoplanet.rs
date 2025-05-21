@@ -1,5 +1,9 @@
 use super::*;
 
+
+pub const PLANET_BOX: (i32, i32, i32, i32) = (274, 154, 98, 98);
+
+
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct Exoplanet {
     pub drones: Vec<Drone>,
@@ -21,7 +25,7 @@ pub struct Exoplanet {
 }
 impl Exoplanet {
     pub fn load() -> Self {
-        let hitbox = Bounds::new(271, 191, 98, 98);
+        let hitbox = Bounds::new(PLANET_BOX.0, PLANET_BOX.1, PLANET_BOX.2, PLANET_BOX.3);
         let pop_up =  PopUp::new("EXOPLANET".to_string());
         Exoplanet {
             drones: vec![],
@@ -107,6 +111,8 @@ impl Exoplanet {
     }
     
     pub fn draw(&self) {
+        let bob =  f32::sin((tick() as f32 + 20.0) / 40.0) * 1.5;
+        let mut bob_box = self.hitbox.translate_y(bob);
         // Draw backside drones
         for drone in self.drones.iter() {
             if !drone.front {
@@ -115,18 +121,19 @@ impl Exoplanet {
         }
 
         // outline
-        if self.hovered {
-            circ!(x = self.hitbox.x() - 2, y = self.hitbox.y() - 2, diameter = 102, color = 0xffffffff); 
-        }
         // main GFX
         let o = (tick() as i32/20)%3;
-        circ!(xy = self.hitbox.translate(-8 + o, -8 + o).xy(), diameter = 114 - o*2, color = 0x6c6c8066);
+        circ!(xy = bob_box.translate(-8 + o, -8 + o).xy(), diameter = 114 - o*2, color = 0x6c6c8066);
         let o = ((tick() as i32/20)+2)%3;
-        circ!(xy = self.hitbox.translate(-29 + o, -29 + o).xy(), diameter = 156 - o*2, color = 0x38375366);
+        circ!(xy = bob_box.translate(-29 + o, -29 + o).xy(), diameter = 156 - o*2, color = 0x38375366);
         
-        sprite!("exoplanet", xy = self.hitbox.xy());
+        if self.hovered {
+            sprite!("exoplanet_hovered", xy = bob_box.translate(-1, -1).xy());
+        }
+        sprite!("exoplanet", xy = bob_box.xy());
         // Draw drones
         for drone in self.drones.iter() {
+            drone.draw_scan();
             if drone.front {
                 drone.draw();
             }

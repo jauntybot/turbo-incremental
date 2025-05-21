@@ -60,7 +60,7 @@ pub struct Asteroid {
 impl Asteroid {
     pub fn new() -> Self {
         // Use the assumed `rand()` function to generate random values
-        let angle = std::f32::consts::FRAC_PI_2 + 0.6; // Start at the top middle (90 degrees or π/2 radians)
+        let angle = std::f32::consts::FRAC_PI_2 + 0.62; // Start at the top middle (90 degrees or π/2 radians)
         let speed = -(((rand() % 101) as f32 / 100.0) * 0.0001 + 0.0001); // Negative angular speed for clockwise motion
         let radius = 1920.0 + 384.0 * ((rand() % 101) as f32 / 100.0); // Random radius in range [960.0, 1280.0]
         let size = 8.0 + ((rand() % 17) as f32); // Random size in range [8.0, 24.0]
@@ -75,7 +75,7 @@ impl Asteroid {
             id,
             drilling: false,
             debris: vec![],
-            sprite: rand() % 3,
+            sprite: rand() % 4,
             rot: rand() % 4
         }
     }
@@ -105,13 +105,17 @@ impl Asteroid {
         // Draw the asteroid as a circle
         //circ!(xy = (self.pos.0 - self.size/2., self.pos.1 - self.size/2.), diameter = self.size, color = 0xaaaaaaff);
         let sprite = format!("stroid_{:02}", self.sprite);
+        let fade = ((2.5 - self.angle) / (2.5 - 2.45)).clamp(0.0, 1.0);
+        let alpha = (fade * 255.) as u8;
         let c: u32 = {
             match color {
-                0 => 0x555555ff,
-                1 => 0x949494ff,
-                _ => 0xffffffff,
+                0 => 0x55555500 | alpha as u32,
+                1 => 0x94949400 | alpha as u32,
+                _ => 0xffffff00 | alpha as u32,
             }
         };
+
+
         sprite!(
             &sprite,
             x = self.pos.0 - 12.,
@@ -141,7 +145,7 @@ impl AsteroidField {
         Self {
             asteroids: vec![vec![], vec![], vec![]],
             limit: 350,
-            spawn_interval: 5,
+            spawn_interval: 10,
             timer: 0,
             belt_index: 0,
         }
@@ -157,7 +161,7 @@ impl AsteroidField {
 
         // Remove asteroids that have reached the left middle point (angle = π radians)
         for belt in self.asteroids.iter_mut() {
-            belt.retain(|asteroid| asteroid.angle < 2.62);
+            belt.retain(|asteroid| asteroid.angle < 2.5);
         }
 
         // Increment the timer

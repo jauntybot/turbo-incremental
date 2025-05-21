@@ -114,6 +114,11 @@ impl AsteroidMines {
     }
     
     pub fn draw(&self) {
+        let mut bob_box = self.hitbox;
+        if self.unlocked {
+            let bob =  f32::sin(tick() as f32 / 35.0 + 20.0) * 1.5;
+            bob_box = self.hitbox.translate_y(bob);
+        }
 
         // Draw backside drones
         for drone in self.drones.iter() {
@@ -132,14 +137,14 @@ impl AsteroidMines {
         //     ); 
         // }
         if !self.unlocked { 
-            sprite!("mines_locked_outline", xy = self.hitbox.xy());
+            sprite!("mines_locked_outline", xy = bob_box.xy());
         }
         // outline
         if self.hovered {
-            sprite!("mines_hovered", xy = self.hitbox.xy());
+            sprite!("mines_hovered", xy = bob_box.xy());
         }
         // main GFX
-        sprite!("mines", xy = self.hitbox.xy());
+        sprite!("mines", xy = bob_box.xy());
 
         for drone in self.drones.iter() {
             if drone.front {
@@ -148,8 +153,8 @@ impl AsteroidMines {
         }
 
         if !self.unlocked { 
-            sprite!("mines_locked", xy = self.hitbox.xy());
-            text!("LOCKED", xy = self.hitbox.translate(-16,2).center(), color = 0xffffffff);       
+            sprite!("mines_locked", xy = bob_box.xy());
+            text!("LOCKED", xy = bob_box.translate(-16,2).center(), color = 0xffffffff);       
         }
 
         // Draw collection numbers

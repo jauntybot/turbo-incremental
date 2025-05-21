@@ -182,7 +182,7 @@ impl PopUp {
             wh = self.panel.wh(), 
             border_radius = 4,
             border_size = 1,
-            color = 0x222034ff,
+            color = 0x1f122bff,
             border_color = 0xffffffff,
         );
         
@@ -242,7 +242,7 @@ impl PopUp {
             wh = (self.panel.w() - 8, bar.3), 
             border_radius = 4,
             border_size = 1,
-            color = 0x222034ff,
+            color = 0x1f122bff,
             border_color = 0xffffffff,
         );
         rect!(
@@ -251,7 +251,7 @@ impl PopUp {
             wh = (bar.2 - 4, bar.3 - 4), 
             border_radius = 4,
             border_size = 1,
-            color = 0x222034ff,
+            color = 0x1f122bff,
             border_color = 0xffffffff,
         );
         rect!(
@@ -261,7 +261,7 @@ impl PopUp {
             border_radius = 4,
             border_size = 1,
             color = 0xffffffff,
-            border_color = 0x222034ff,
+            border_color = 0x1f122bff,
         );
         let t = if self.drones > 0 { "FABRICATING DRONE..." } else { "ASSIGN MAKER DRONE." };
         text!(&t, fixed = true, xy = (bar.0 + 4, bar.1 + 26), color = 0xffffffff);

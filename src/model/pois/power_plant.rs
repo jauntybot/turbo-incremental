@@ -78,7 +78,7 @@ impl PowerPlant {
 
         for drone in self.drones.iter_mut() {
             if drone.conduit(nebula) {
-                let amount =  (1.0 + self.drone_level as f32 * 0.9 * 12.) as u64;
+                let amount =  ((1.0 + self.drone_level as f32 * 0.9).round() * 12.) as u64;
                 produced.1 += amount;
                 self.collections.push(
                     Collection::new(
@@ -111,6 +111,12 @@ impl PowerPlant {
     }
 
     pub fn draw(&self) {
+        let mut bob_box = self.hitbox;
+        if self.unlocked {
+            let bob =  f32::sin(tick() as f32 / 20.0 + 5.0) * 1.5;
+            bob_box = self.hitbox.translate_y(bob);
+        }
+
 
         // Draw drones
         for drone in self.drones.iter() {
@@ -118,32 +124,16 @@ impl PowerPlant {
                 drone.draw();
             }
         }
-
-        // if self.hovered {
-        //     rect!(
-        //         x = self.hitbox.x() - 1, 
-        //         y = self.hitbox.y() - 1, 
-        //         wh = (self.hitbox.w() + 2, self.hitbox.w() + 2), 
-        //         border_radius = 4,
-        //         color = 0xffffffff
-        //     ); 
-        // }
-        // rect!(
-            //     xy = self.hitbox.xy(), 
-        //     wh = self.hitbox.wh(), 
-        //     border_radius = 4,
-        //     color = 0xac3232ff
-        // );
         
         if !self.unlocked { 
-            sprite!("plant_locked_outline", xy = self.hitbox.xy());
+            sprite!("plant_locked_outline", xy = bob_box.xy());
         }
         // outline
         if self.hovered {
-            sprite!("plant_hovered", xy = self.hitbox.xy());
+            sprite!("plant_hovered", xy = bob_box.xy());
         }
         // main GFX
-        sprite!("plant", xy = self.hitbox.xy());
+        sprite!("plant", xy = bob_box.xy());
 
         // Draw drones
         for drone in self.drones.iter() {
@@ -153,8 +143,8 @@ impl PowerPlant {
         }
 
         if !self.unlocked { 
-            sprite!("plant_locked", xy = self.hitbox.xy());
-            text!("LOCKED", xy = self.hitbox.translate(-15, 17).center(), color = 0xffffffff);   
+            sprite!("plant_locked", xy = bob_box.xy());
+            text!("LOCKED", xy = bob_box.translate(-15, 17).center(), color = 0xffffffff);   
         }
 
         // Draw collection numbers

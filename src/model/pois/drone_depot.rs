@@ -1,6 +1,6 @@
 use super::*;
 
-pub const DEPOT_BOX: (i32, i32, i32, i32) = (128, 320, 64, 64);
+pub const DEPOT_BOX: (i32, i32, i32, i32) = (160, 304, 64, 64);
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct DroneDepot {
@@ -50,7 +50,7 @@ impl DroneDepot {
             fabricator,
             fab_prog: 0,
             fab_level: 0,
-            fab_limit: 500,
+            fab_limit: 320,
 
             hitbox,
             pop_up,
@@ -88,6 +88,11 @@ impl DroneDepot {
     pub fn update(&mut self, player: &mut Player, event_manager: &mut EventManager) {
         let p = pointer();
         let rp = p.xy();
+
+        if self.unlocked {
+            
+        }
+
         if event_manager.dialogue.is_none() {
             self.hovered = 
                 self.hitbox.intersects_xy(rp) 
@@ -138,7 +143,7 @@ impl DroneDepot {
                     self.fab_prog += prod.1;
                     if self.fab_prog >= self.fab_limit {
                         self.fab_level += 1;
-                        self.fab_limit = CostFormula::Exponential.calculate_cost(vec![(Resources::Metals, 500)], self.fab_level)[0].1;
+                        self.fab_limit = CostFormula::Exponential.calculate_cost(vec![(Resources::Metals, 320)], self.fab_level)[0].1;
                         self.fab_prog = 0;
                         player.collect((Resources::Drones, 1));
                         self.collections.push(Collection::new((self.hitbox.center_x() as f32, self.hitbox.center_y() as f32), (Resources::Drones, 1),));
@@ -157,20 +162,25 @@ impl DroneDepot {
     }
 
     pub fn draw(&self) {
+        let mut bob_box = self.hitbox;
+        if self.unlocked {
+            let bob =  f32::sin(tick() as f32 / 20.0) * 1.5;
+            bob_box = self.hitbox.translate_y(bob);
+        }
         if !self.unlocked { 
-            sprite!("depot_locked_outline", xy = self.hitbox.xy());
+            sprite!("depot_locked_outline", xy = bob_box.xy());
         }
         // outline
         if self.hovered {
-            sprite!("depot_hovered", xy = self.hitbox.xy());
+            sprite!("depot_hovered", xy = bob_box.xy());
             if self.fabricator_unlocked {
-                sprite!("fab_hovered", xy = self.hitbox.xy());
+                sprite!("fab_hovered", xy = bob_box.xy());
             }
         }
         // main GFX
-        sprite!("depot", xy = self.hitbox.xy());
+        sprite!("depot", xy = bob_box.xy());
         if self.fabricator_unlocked {
-            sprite!("fab", xy = self.hitbox.xy());
+            sprite!("fab", xy = bob_box.xy());
         }
 
         for drone in self.drones.iter() {
@@ -180,8 +190,8 @@ impl DroneDepot {
         }
 
         if !self.unlocked { 
-            sprite!("depot_locked", xy = self.hitbox.xy());
-            text!("LOCKED", xy = self.hitbox.translate(-16,-4).center(), color = 0xffffffff);       
+            sprite!("depot_locked", xy = bob_box.xy());
+            text!("LOCKED", xy = bob_box.translate(-16,-4).center(), color = 0xffffffff);       
         }
         
         // Draw drones

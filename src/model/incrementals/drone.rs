@@ -28,6 +28,9 @@ pub struct Drone {
     asteroid_id: u32, 
     pub cargo: Vec<(Resources, u64)>,
     pub on_site: bool,
+
+    wander_progress: f32,
+    wander_forward: bool,
 }
 
 impl Drone {
@@ -37,7 +40,7 @@ impl Drone {
             target_pos: (target_pos.0 as f32, target_pos.1 as f32),
             front: true,
             interval: match mode {
-                DroneMode::Survey => 8000.,
+                DroneMode::Survey => 800.,
                 DroneMode::Mining => 500.,
                 DroneMode::Shipping => 300.,
                 DroneMode::Conduit => 400.,
@@ -54,6 +57,9 @@ impl Drone {
             asteroid_id: 0,
             cargo: vec![],
             on_site: false,
+
+            wander_progress: 0.,
+            wander_forward: false,
         }
     }
 
@@ -77,26 +83,41 @@ impl Drone {
     }
 
     pub fn wander(&mut self, min_duration: f32) -> bool {
-        self.angle += 0.0001;
-    
-        let center = (944., -304.);
-        let radius = 120.0 + (rand() as f32 % 241.0); // Random radius
-        if self.angle > self.phase {
-            // Use the same center, radius, and angle logic as NebulaStorm
-            self.angle = 64. + rand() as f32 % 65.0;             // Anywhere around the circle
-            let arc_span = 90.0 + (rand() as f32 % 32.0) - radius/360. * 32.;        // Arc length 15°–30°
-            let start_angle = 64. + rand() as f32 % 65.0; 
-            self.phase = start_angle + (rand() as f32 % arc_span);
-            log!("True");
-            return true;
+        // Arc parameters
+        let center = (640.0 + 240. + 64., -240. - 64.);
+        let base_radius = 240. + self.phase * 120.;
+        let arc_start = 0.35; // radians, adjust as needed
+        let arc_end = 4.0;   // radians, adjust as needed
+        let speed = 0.008;   // adjust for desired speed
+
+        // Initialize direction if not present
+        if self.wander_progress.is_nan() {
+            self.wander_progress = 0.0;
+            self.wander_forward = true;
         }
-        
-        let angle = self.phase.to_radians();
-        // Set the target position based on the random angle and radius
+
+        // Update progress along the arc
+        if self.wander_forward {
+            self.wander_progress += speed;
+            if self.wander_progress >= 1.0 {
+                self.wander_progress = 1.0;
+                self.wander_forward = false;
+            }
+        } else {
+            self.wander_progress -= speed;
+            if self.wander_progress <= 0.0 {
+                self.wander_progress = 0.0;
+                self.wander_forward = true;
+            }
+        }
+
+        // Interpolate angle along the arc
+        let angle = arc_start + (arc_end - arc_start) * self.wander_progress;
         self.target_pos = (
-            center.0 + radius * angle.cos(),
-            center.1 + radius * angle.sin(),
+            center.0 + base_radius * angle.cos(),
+            center.1 + base_radius * angle.sin(),
         );
+
         self.follow(0.1);
         false
     }
@@ -106,7 +127,7 @@ impl Drone {
         let angle = ((self.timer as f32 / self.interval as f32) + self.phase) * std::f32::consts::TAU; // TAU = 2 * PI
 
         // Define the ellipse dimensions
-        let center = (320.0, 240.0 ); // Center of the ellipse
+        let center = ((PLANET_BOX.0 + PLANET_BOX.2/2) as f32, (PLANET_BOX.1 + PLANET_BOX.3/2) as f32); // Center of the ellipse
         let radius_x = 100.0; // Horizontal radius
         let radius_y = 25.0;  // Vertical radius
 
@@ -139,6 +160,7 @@ impl Drone {
             } 
             false
         } else {
+            self.timer = self.interval/2.-1.;
             self.target_pos = (center.0 + radius_x * angle.cos(),
                 center.1 + radius_y * oscillation * angle.sin());
             if self.follow(0.1) {
@@ -172,10 +194,10 @@ impl Drone {
 //            log!("{}", (16. + self.phase * 16.) * angle.sin());
             if self.timer >= self.interval {
                 self.timer = 0.;
-                let amount = ((1.0 + self.speed as f32 * 0.2) * 10.).round() as u64;
+                let amount = ((1.0 + self.speed as f32 * 0.2) * 10. + (self.level as f32 * 0.75 * 5.)).round() as u64;
                 if amount >= self.cargo[0].1 {
                     self.cargo.clear();
-                    self.target_pos = (MINES_BOX.0 as f32, MINES_BOX.1 as f32);
+                    self.target_pos = mines;
                     self.on_site = false;
                 } else {
                     self.cargo[0].1 -= amount;
@@ -334,6 +356,10 @@ impl Drone {
             color = 0xffc247ff, 
         );
         sprite!("drone", xy = (self.pos.0 - 2., self.pos.1 -2.), wh = (4, 4));
+
+    }
+
+    pub fn draw_scan(&self) {
         if let Some(scan) = &self.scan {
             scan.draw();
         }

@@ -68,24 +68,6 @@ impl Jumpgate {
 
         // Produce Resources
         let mut produced = (Resources::Research, 0);
-        
-        // Initial click
-        if self.hovered && self.hitbox.intersects_xy(rp) 
-            && p.just_pressed() && tick() - self.clicked_at >= self.collect_interval {
-            self.clicked_at = tick();
-            produced.1 += self.manual_produce();
-            player.scan();
-        }
-        // Manually produce resources every 30 ticks
-        if tick() - self.clicked_at >= self.collect_interval {
-            if self.hitbox.intersects_xy(rp) && p.pressed() {
-                produced.1 += self.manual_produce();
-                player.scan();
-            }
-            self.clicked_at = tick();
-        }
-        //if p.released() { self.clicked_at = 0; }
-
         produced.1 += self.produce();
         
         // Update collection numbers
@@ -108,6 +90,11 @@ impl Jumpgate {
     }
 
     pub fn draw(&self) {
+        let mut bob_box = self.hitbox;
+        if self.unlocked {
+            let bob =  f32::sin(tick() as f32 / 25.0 + 10.0) * 1.5;
+            bob_box = self.hitbox.translate_y(bob);
+        }
 
         // Draw backside drones
         for drone in self.drones.iter() {
@@ -115,18 +102,17 @@ impl Jumpgate {
                 drone.draw();
             }
         }
-
         
         if !self.unlocked { 
-            sprite!("gate_locked_outline", xy = self.hitbox.xy());
+            sprite!("gate_locked_outline", xy = bob_box.xy());
         }
         // outline
         if self.hovered {
-            sprite!("gate_hovered", xy = self.hitbox.xy());
+            sprite!("gate_hovered", xy = bob_box.xy());
         }
 
         // main GFX
-        sprite!("gate", xy = self.hitbox.xy());
+        sprite!("gate", xy = bob_box.xy());
 
         for drone in self.drones.iter() {
             if drone.front {
@@ -135,10 +121,13 @@ impl Jumpgate {
         }
 
         if !self.unlocked { 
-            sprite!("gate_locked", xy = self.hitbox.xy());
-            text!("LOCKED", xy = self.hitbox.translate(-15,-4).center(), color = 0xffffffff);  
+            sprite!("gate_locked", xy = bob_box.xy());
+            text!("LOCKED", xy = bob_box.translate(-15,-4).center(), color = 0xffffffff);  
         }
+    }
 
+    pub fn draw_ui(&self) { 
+        
         if self.hovered {
             // pop up
             self.pop_up.draw(&self.avail_upgrades);

@@ -228,18 +228,18 @@ impl DialogueBox {
         if self.tween.0.is_some() || self.tween.1.is_some() {
             if let Some(ref mut xtween) = self.tween.0 {
                 let x = xtween.get();
-                player.camera.pos.0 = x;
+                player.camera.pos.0 = x as f32;
             }
             if let Some(ref mut ytween) = self.tween.1 {
                 let y = ytween.get();
-                player.camera.pos.1 = y;
+                player.camera.pos.1 = y as f32;
             }
         }
         
         let p = pointer();
         if p.intersects_fixed(self.panel.x(), self.panel.y(), self.panel.w(), self.panel.h()) && p.just_pressed() {
-            player.camera.velocity = (0,0);
-            player.camera.last_pointer_pos = (0,0);
+            player.camera.velocity = (0.,0.);
+            player.camera.last_pointer_pos = (0.,0.);
             player.camera.dragging = false;
             return true;
         }
@@ -251,14 +251,14 @@ impl DialogueBox {
         self.confirm.update();
         self.cancel.update();
         if self.confirm.on_click() {
-            player.camera.velocity = (0,0);
-            player.camera.last_pointer_pos = (0,0);
+            player.camera.velocity = (0.,0.);
+            player.camera.last_pointer_pos = (0.,0.);
             player.camera.dragging = false;
             return Some(true);
         }
         if self.cancel.on_click() {
-            player.camera.velocity = (0,0);
-            player.camera.last_pointer_pos = (0,0);
+            player.camera.velocity = (0.,0.);
+            player.camera.last_pointer_pos = (0.,0.);
             player.camera.dragging = false;
             return Some(false);
         }
@@ -273,7 +273,7 @@ impl DialogueBox {
             wh = self.panel.wh(), 
             border_radius = 4,
             border_size = 1,
-            color = 0x222034ff,
+            color = 0x1f122bff,
             border_color = 0xffffffff,
         );
 
@@ -283,7 +283,7 @@ impl DialogueBox {
             wh = (50, 50),
             border_radius = 4,
             border_size = 1,
-            color = 0x222034ff,
+            color = 0x1f122bff,
             border_color = 0xffffffff,
         );
         sprite!(

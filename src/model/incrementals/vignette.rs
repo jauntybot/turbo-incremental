@@ -15,23 +15,31 @@ impl Vignette {
             fade: true,
             fade_prog: 255.,
             stage: 0,
-            depot: vec![Cloud::new((320, 240), 320, 240), Cloud::new((DEPOT_BOX.0-16, DEPOT_BOX.1-16), 48, 0)],
-            mines: vec![Cloud::new((320, 240), 480, 320),],
-            clouds: vec![Cloud::new((320, 240), 800, 480)],
+            depot: vec![Cloud::new((320, 200), 320, 240), Cloud::new((DEPOT_BOX.0-16, DEPOT_BOX.1-16), 48, 0)],
+            mines: vec![Cloud::new((320, 200), 480, 320),],
+            clouds: vec![Cloud::new((320, 200), 780, 480)],
         }
     }
 
     pub fn handle_event(&mut self, event: &Event) {
         match event {
             Event::DroneDepotUnlockable => {
-                self.depot.clear();
+                self.depot.remove(1);
+                self.depot[0].fade_ranges.push((110., 200.));
             }
             Event::MinesUnlockable => {
-                self.mines.clear();
-                self.clouds[0].fade_ranges.push((180., 270.));
+                self.depot[0].fade_ranges[0] = (110., 315.);
+                self.mines[0].fade_ranges.push((180., 280.));
+                self.clouds[0].fade_ranges.push((190., 250.));
             }
             Event::PowerPlantUnlockable => {
+                self.depot.clear();
+                self.mines[0].fade_ranges[0] = (180., 10.);
                 self.clouds[0].fade_ranges[0].1 = 360.;
+            }
+            Event::LateGame => {
+                self.mines[0].fade_ranges.push((40., 140.));
+                self.clouds[0].fade_ranges.push((60., 120.));
             }
             _ => {}
         }
@@ -82,12 +90,5 @@ impl Vignette {
         for cloud in self.mines.iter() {
             cloud.draw();
         }
-
-        //circ!(xy = (-280, -360), size = 1200, border_size = 240, border_color = 0x000000BF, color = 0x00000000);
-        // sprite!("blobs", xy = (DEPOT_BOX.0, DEPOT_BOX.1), wh = (192, 192), color = 0x000000BF);
-        // sprite!("blobs", xy = (DEPOT_BOX.0 - 96, DEPOT_BOX.1 - 96), wh = (192, 192), color = 0x000000BF);
-        // sprite!("blobs", xy = (DEPOT_BOX.0 - 480, DEPOT_BOX.1), wh = (640, 640), color = 0x000000BF);
-        // sprite!("blobs", xy = (0, DEPOT_BOX.1 + 120), wh = (640, 640), color = 0x000000BF);
-
     }
 }

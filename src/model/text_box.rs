@@ -56,7 +56,7 @@ impl WrapBox {
     }
 
     pub fn draw(&self) {
-        rect!(fixed = true, xy = self.bounds.xy(), wh = self.bounds.wh(), border_size = 1, border_radius = 4, color = 0x222034ff, border_color = 0xffffffff);
+        rect!(fixed = true, xy = self.bounds.xy(), wh = self.bounds.wh(), border_size = 1, border_radius = 4, color = 0x1f122bff, border_color = 0xffffffff);
         for i in 0..self.lines.len() {
             text!("{}", self.lines[i]; fixed = true, xy = (self.bounds.x() + 4, self.bounds.y() + 4 + i as i32 * 10), color = 0xffffffff);
         }

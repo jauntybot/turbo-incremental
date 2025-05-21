@@ -6,7 +6,7 @@ pub use model::*;
 turbo::init!(
     struct GameState {
         player: Player,
-        //vignette: Vignette,
+        vignette: Vignette,
         event_manager: EventManager,
         exoplanet: Exoplanet,
         drone_depot: DroneDepot,
@@ -23,7 +23,7 @@ impl GameState {
     pub fn new() -> Self {
         let mut state = GameState {  
             player: Player::load(),
-            //vignette: Vignette::new(),
+            vignette: Vignette::new(),
             event_manager: EventManager::new(),
             exoplanet: Exoplanet::load(),
             drone_depot: DroneDepot::load(),
@@ -34,7 +34,7 @@ impl GameState {
             jumpgate: Jumpgate::load(),
             research_complex: ResearchComplex::load(),
         };
-        //state.vignette.fade = false;
+        state.vignette.fade = false;
         state.save_local();
         state
     }
@@ -68,7 +68,7 @@ turbo::go! ({
         }
     }
     // text!("pos: ({}, {}), target: ({}, {}), last: ({}, {})", state.player.camera.pos.0, state.player.camera.pos.1, camera::x(), camera::y(), state.player.camera.last_pointer_pos.0, state.player.camera.last_pointer_pos.1; fixed = true, y = 28);
-    //rect!(xy = (0, 0), wh = (640, 400), border_size = 1, color = 0xffffff00, border_color = 0xffffffff);
+    //rect!(xy = (-320, -200), wh = (1280, 800), border_size = 1, color = 0xffffff00, border_color = 0xffffffff);
 
     if state.event_manager.dialogue.is_none() {
         state.player.update(&mut state.event_manager);
@@ -113,7 +113,7 @@ turbo::go! ({
     state.event_manager.process_events(|event| {
         //state.handle_event(event);
         state.player.handle_event(event);
-        //state.vignette.handle_event(event);
+        state.vignette.handle_event(event);
         state.exoplanet.handle_event(event);
         state.drone_depot.handle_event(event);
         state.asteroid_mines.handle_event(event);
@@ -128,7 +128,7 @@ turbo::go! ({
                 save = true;
             }
             Event::EndGame => {
-                //state.vignette.fade = true;
+                state.vignette.fade = true;
                 reset = true;
             }
             _ => {}
@@ -142,10 +142,10 @@ turbo::go! ({
     }
     
     sfx.update(&mut state.event_manager);
-    //state.vignette.update();
+    state.vignette.update();
 
     // Drawing
-    //state.vignette.draw();
+    state.vignette.draw();
     state.player.draw();
     if tick() > 250 {
         state.event_manager.update(&mut state.player);
@@ -155,6 +155,7 @@ turbo::go! ({
     state.drone_depot.draw_ui();
     state.asteroid_mines.draw_ui();
     state.power_plant.draw_ui();
+    state.jumpgate.draw_ui();
 
     sfx.draw();
 

@@ -106,7 +106,7 @@ impl Sfx {
                 wh = self.menu_bounds.wh(),
                 border_size = 1,
                 border_radius = 2,
-                color = 0x222034ff,
+                color = 0x1f122bff,
                 border_color = 0xffffffff,
             );
             self.music_toggle.draw();
@@ -137,7 +137,7 @@ impl Sfx {
                 wh = self.menu_bounds.wh(),
                 border_size = 1,
                 border_radius = 2,
-                color = 0x222034ff,
+                color = 0x1f122bff,
                 border_color = 0xffffffff,
             );
             let mut textbox = TextBox::new("alpha v0.1.1");
@@ -145,17 +145,17 @@ impl Sfx {
             textbox.set_size(88, 96);
             textbox.set_position(self.menu_bounds.x() + 4, self.menu_bounds.y() + 4);
             textbox.draw();
-            let mut textbox = TextBox::new("Game by jauntybot");
+            let mut textbox = TextBox::new("game by jauntybot");
             textbox.set_fixed(true);
             textbox.set_size(88, 96);
             textbox.set_position(self.menu_bounds.x() + 4, self.menu_bounds.y() + 24);
             textbox.draw();
-            let mut textbox = TextBox::new("Music by zach jones");
+            let mut textbox = TextBox::new("music by zach jones");
             textbox.set_fixed(true);
             textbox.set_size(88, 96);
             textbox.set_position(self.menu_bounds.x() + 4, self.menu_bounds.y() + 44);
             textbox.draw();
-            let mut textbox = TextBox::new("Made fast using the Turbo engine");
+            let mut textbox = TextBox::new("made fast using the Turbo engine");
             textbox.set_fixed(true);
             textbox.set_size(88, 96);
             textbox.set_position(self.menu_bounds.x() + 4, self.menu_bounds.y() + 74);

@@ -8,7 +8,7 @@ pub static CUTSCENES: Lazy<Vec<Dialogue>> = Lazy::new(|| vec![
             "Sending autonomous research probe to Exoplanet...".to_string(),
             "Scan the Exoplanet to gather scientific RESEARCH and report back.  ".to_string(),
         ],
-        camera_pos: vec![((320, 240), 0), ((320, 296), 2)],
+        camera_pos: vec![((320, 200), 0), ((320, 256), 2)],
         d_box: DialogueBox::new(),
         event_broadcast: 0,
         prompt: false,
@@ -51,7 +51,7 @@ pub static CUTSCENES: Lazy<Vec<Dialogue>> = Lazy::new(|| vec![
     Dialogue {
         messages: vec![
             "Automated POWER production initiated.".to_string(),
-            "Sector self-sufficiency achieved. Final stage of exoplanet observation.".to_string(),
+            "Sector self-sufficiency achieved. Entering final stage of exoplanet observation.".to_string(),
             // "Authorizing construction of RESEARCH COMPLEX.".to_string(),
             // ".".to_string(),
             "Authorizing construction of JUMPGATE.".to_string(),
@@ -65,7 +65,7 @@ pub static CUTSCENES: Lazy<Vec<Dialogue>> = Lazy::new(|| vec![
     Dialogue {
         messages: vec![
             "Jumpgate initiated. Prepare for imminent jump.".to_string(),
-            "Good work, researcher. There's more work in the next sector!".to_string(),
+            "Good work, researcher! There's more work in the next sector.".to_string(),
         ],
         camera_pos: vec![((GATE_BOX.0 + GATE_BOX.2/2, GATE_BOX.1 - 16), 0)], // ((COMPLEX_BOX.0 + COMPLEX_BOX.2/2, COMPLEX_BOX.1 + COMPLEX_BOX.3/2), 2),
         d_box: DialogueBox::new(),
@@ -83,7 +83,7 @@ pub static CUTSCENES: Lazy<Vec<Dialogue>> = Lazy::new(|| vec![
     },
     Dialogue {
         messages: vec![
-            "Thank you for playing. This is the end of the demo.".to_string(),
+            "Another sector is waiting observation.".to_string(),
             "Play again?".to_string(),
             "".to_string(),
         ],

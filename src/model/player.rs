@@ -20,9 +20,10 @@ impl Player {
     pub fn load() -> Self {
         Player {
             resources: vec![
-                (Resources::Research, 4000000000),
-                (Resources::Metals, 4000000000),
-                (Resources::Power, 4000000000),
+                // (Resources::Research, 4000000000),
+                // (Resources::Drones, 4000000000),
+                // (Resources::Metals, 4000000000),
+                // (Resources::Power, 4000000000),
             ],
             xy: (320., 600.),
             target_pos: (0., 0.),
@@ -212,7 +213,7 @@ impl PlayerDisplay {
         let wh = (64, resources.len() as i32 * 24 + 20);
         let xy = (0, vp.bottom() - wh.1);
 
-        rect!(fixed = true, x = xy.0, y = xy.1, w = wh.0, h = wh.1, border_radius = 4, border_size = 1, color = 0x222034ff, border_color = 0xffffffff);
+        rect!(fixed = true, x = xy.0, y = xy.1, w = wh.0, h = wh.1, border_radius = 4, border_size = 1, color = 0x1f122bff, border_color = 0xffffffff);
         text!("RESOURCES", fixed = true, x = xy.0 + 4, y = xy.1 + 6, color = 0xffffffff);
         rect!(fixed = true, x = xy.0 + 4, y = xy.1 + 18, w = wh.0 - 8, h = 1, color = 0xffffffff);
 
@@ -244,6 +245,7 @@ pub struct Scan {
     pub pos: (f32, f32),
     pub radius: f32,
     pub lifetime: f32,
+    key: String,
 }
 
 impl Scan {
@@ -253,13 +255,14 @@ impl Scan {
             pos,
             radius: 0.0,
             lifetime: 40.,
+            key: rand().to_string(),
         }
     }
 
     pub fn update(&mut self, origin: (f32, f32)) -> bool {
         self.lifetime -= 1.;
         self.origin = origin;
-        if self.lifetime <= 0. {
+        if self.lifetime <= -20. {
             return false;
         }
         if self.lifetime <= 30. {
@@ -315,17 +318,18 @@ impl Scan {
                     break;
                 }
 
-                circ!(
+                sprite!(
+                    "scan_line",
                     xy = dash_start,
-                    size = 2,
-                    color = 0x99e550ff,
                 );
             }
         }
+        let anim = animation::get(&self.key);
+        anim.use_sprite("scan");
+        anim.set_repeat(0);
 
         // Draw the scan effect
-        circ!(x = self.pos.0 - self.radius, y = self.pos.1 - self.radius, diameter = self.radius*2., border_size = 1, color = 0x99e55000, border_color = 0x99e550ff);
-        circ!(x = self.pos.0 - self.radius/2., y = self.pos.1 - self.radius/2., diameter = self.radius, border_size = 1, color = 0x99e55000, border_color = 0x99e550ff);
+        sprite!(animation_key = &self.key, xy = (self.pos.0 - 8., self.pos.1 - 8.));
     }
 
 }

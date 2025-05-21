@@ -137,7 +137,7 @@ impl ResearchComplex {
         }
 
         if !self.unlocked { 
-            rect!(xy = self.hitbox.translate(-32, -6).center(), wh = (64, 12), color = 0x222034ff);
+            rect!(xy = self.hitbox.translate(-32, -6).center(), wh = (64, 12), color = 0x1f122bff);
             text!("LOCKED", xy = self.hitbox.translate(-15,-3).center(), color = 0xffffffff); 
         }
 
