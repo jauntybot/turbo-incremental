@@ -3,7 +3,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct Vignette {
     pub fade: bool,
-    fade_prog: f32,
+    pub fade_prog: f32,
     stage: u32,
     depot: Vec<Cloud>,
     mines: Vec<Cloud>,

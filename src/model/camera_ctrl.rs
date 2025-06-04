@@ -84,11 +84,11 @@ impl CameraCtrl {
         }
 
         // zoom
-        if (gp.a.pressed() || p.scroll_delta().1 < 0) && camera::zoom() < 4.0 && (tick() - self.zoom_tick) > 5 {
+        if (gp.a.pressed() || p.scroll_delta().1 > 0) && camera::zoom() < 4.0 && (tick() - self.zoom_tick) > 5 {
             camera::move_zoom(1.0);
             if camera::zoom() >= 3.0 { camera::set_zoom(4.0); } 
             self.zoom_tick = tick();
-        } else if (gp.b.pressed() || p.scroll_delta().1 > 0) && camera::zoom() > 0.5 && (tick() - self.zoom_tick) > 5 {
+        } else if (gp.b.pressed() || p.scroll_delta().1 < 0) && camera::zoom() > 0.5 && (tick() - self.zoom_tick) > 5 {
             camera::move_zoom(-1.0);
             if camera::zoom() <= 1.0 { camera::set_zoom(1.0); }
             if camera::zoom() == 3.0 { camera::set_zoom(2.0); }

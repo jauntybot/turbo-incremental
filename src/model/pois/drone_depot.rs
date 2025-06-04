@@ -1,6 +1,6 @@
 use super::*;
 
-pub const DEPOT_BOX: (i32, i32, i32, i32) = (160, 304, 64, 64);
+pub const DEPOT_BOX: (i32, i32, i32, i32) = (160, 284, 64, 64);
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct DroneDepot {

@@ -1,6 +1,6 @@
 use super::*;
 
-pub const GATE_BOX: (i32, i32, i32, i32) = (288, 488, 64, 64);
+pub const GATE_BOX: (i32, i32, i32, i32) = (288, 432, 64, 64);
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct Jumpgate {

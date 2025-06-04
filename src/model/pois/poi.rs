@@ -15,3 +15,4 @@ pub trait POI {
 
     fn upgrade(&mut self, upgrade: &Upgrade, event_manager: &mut EventManager) {}
 }
+

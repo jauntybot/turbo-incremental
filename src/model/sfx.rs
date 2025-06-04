@@ -4,7 +4,7 @@ use turbo::canvas::text_box::TextBox;
 use std::sync::Mutex;
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
-pub struct Sfx {
+pub struct Global {
     pub sfx: bool,
     pub music: bool,
     pub options_button: Btn,
@@ -21,13 +21,13 @@ pub struct Sfx {
 }
 
 // The singleton instance
-pub static SFX: Lazy<Mutex<Sfx>> = Lazy::new(|| Mutex::new(Sfx::new()));
-impl Sfx {
+pub static GLOBAL: Lazy<Mutex<Global>> = Lazy::new(|| Mutex::new(Global::new()));
+impl Global {
     // Private constructor
     fn new() -> Self {
         let menu_bounds = Bounds::new(0, 26, 96, 96);
         let spacing = 24;
-        Sfx {
+        Global {
             sfx: true,
             music: true,
             options_button: Btn::new("gear".to_string(), Bounds::new(0,0,24,24), false, 1),
@@ -46,7 +46,7 @@ impl Sfx {
 
     // Example function that can be called on the singleton
     pub fn play_sound(sound_id: u32) {
-        let mut instance = SFX.lock().unwrap();
+        let mut instance = GLOBAL.lock().unwrap();
     }
 
     pub fn update(&mut self, event_manager: &mut EventManager) {

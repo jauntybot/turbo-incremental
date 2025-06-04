@@ -195,6 +195,16 @@ impl Player {
             rotation = self.dir,
         );
 
+        if self.jumping && self.jump_timer >= 60 {
+            let anim = animation::get("jump");
+            anim.use_sprite("jump");
+            anim.set_repeat(0);
+            anim.set_fill_forwards(true);
+
+            // Draw the scan effect
+            sprite!(animation_key = "jump", xy = (GATE_BOX.0, GATE_BOX.1 - 64));
+        }
+
         PlayerDisplay::draw(&self.resources);
     }
 }

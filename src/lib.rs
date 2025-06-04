@@ -50,7 +50,10 @@ impl GameState {
 
     pub fn load_local() -> GameState {
         let data = local::load().unwrap_or_else(|_| vec![]);
-        GameState::try_from_slice(&data).unwrap_or_else(|_| GameState::new())
+        let mut state = GameState::try_from_slice(&data).unwrap_or_else(|_| GameState::new());
+        state.vignette.fade = false;
+        state.vignette.fade_prog = 255.;
+        state
     }
 
 }
@@ -59,7 +62,7 @@ impl GameState {
 // The stuff in this block will run ~60x per sec
 turbo::go! ({
     let mut state = GameState::load();
-    let mut sfx = SFX.lock().unwrap();
+    let mut sfx = GLOBAL.lock().unwrap();
     
     
     for x in -1..=1 {
@@ -110,8 +113,8 @@ turbo::go! ({
     // Event subscribers
     let mut reset = false;
     let mut save = false;
+
     state.event_manager.process_events(|event| {
-        //state.handle_event(event);
         state.player.handle_event(event);
         state.vignette.handle_event(event);
         state.exoplanet.handle_event(event);
@@ -134,6 +137,7 @@ turbo::go! ({
             _ => {}
         }
     });
+
     if reset {
         state = GameState::new();
     }
@@ -147,7 +151,7 @@ turbo::go! ({
     // Drawing
     state.vignette.draw();
     state.player.draw();
-    if tick() > 250 {
+    if tick() > 100 {
         state.event_manager.update(&mut state.player);
     }
     
@@ -170,12 +174,12 @@ turbo::go! ({
             255
         };
         let color = 0xFFFFFF00 | alpha as u32; // Place alpha in the lowest byte
-        sprite!(
-            "coolmath",
-            fixed = true,
-            xy = (0, 0),
-            color = color
-        );
+        // sprite!(
+        //     "coolmath",
+        //     fixed = true,
+        //     xy = (0, 0),
+        //     color = color
+        // );
     }
 
     state.save();
