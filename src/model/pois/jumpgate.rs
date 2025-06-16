@@ -5,6 +5,9 @@ pub const GATE_BOX: (i32, i32, i32, i32) = (288, 432, 64, 64);
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct Jumpgate {
     pub drones: Vec<Drone>,
+
+    station: Station,
+
     pub drone_level: u32,
     pub drone_speed: u32,
 
@@ -15,6 +18,10 @@ pub struct Jumpgate {
     pub clicked_at: usize,
     pub collections: Vec<Collection>,
     pub collect_interval: usize,
+
+    earn: u64,
+    limit: u64,
+    prog: u64,
     
     pub unlockable: bool,
     pub unlocked: bool,
@@ -25,9 +32,16 @@ pub struct Jumpgate {
 impl Jumpgate {
     pub fn load() -> Self {
         let hitbox = Bounds::new(GATE_BOX.0, GATE_BOX.1, GATE_BOX.2, GATE_BOX.3);
-        let pop_up =  PopUp::new("JUMPGATE".to_string());
+        let pop_up =  PopUp::new_fab("JUMPGATE".to_string(), Resources::Prestige);
         Jumpgate {
             drones: vec![],
+          
+            station: Station {
+                drone_base: 20.,
+                drone_eff: 1.0,
+                drone_speed: 600.,
+            },
+
             drone_level: 0,
             drone_speed: 0,
 
@@ -38,6 +52,10 @@ impl Jumpgate {
             clicked_at: 0,
             collections: vec![],
             collect_interval: 20,
+
+            earn: 0,
+            limit: 0,
+            prog: 0,
 
             unlockable: false,
             unlocked: false,
@@ -60,9 +78,16 @@ impl Jumpgate {
         // Update pop up position and buttons, apply upgrades
         if self.hovered {
             // Pop up returns upgrade player clicks
-            if let Some(upgrade) = self.pop_up.update(self.hitbox, &mut self.avail_upgrades, &GATE_UPGRADES, &player.resources) {
-                self.upgrade(&upgrade, event_manager);
-                player.upgrade(&upgrade, self);
+            if self.unlocked {
+                if let Some(upgrade) = self.pop_up.update_fabricator(self.hitbox, &self.station, &mut self.avail_upgrades, &GATE_UPGRADES, &player.resources) {
+                    self.upgrade(&upgrade, event_manager);
+                    player.upgrade(&upgrade);
+                }
+            } else {
+                if let Some(upgrade) = self.pop_up.update(self.hitbox, &self.station, &mut self.avail_upgrades, &GATE_UPGRADES, &player.resources) {
+                    self.upgrade(&upgrade, event_manager);
+                    player.upgrade(&upgrade);
+                }
             }
         }
 
@@ -77,6 +102,10 @@ impl Jumpgate {
         }); 
         
         player.collect(produced);
+
+        self.limit = player.prestige_limit;
+        self.earn = player.prestige_earned;
+        self.prog = player.prestige_prog;
     }
 
     pub fn handle_event(&mut self, event: &Event) {
@@ -130,7 +159,11 @@ impl Jumpgate {
         
         if self.hovered {
             // pop up
-            self.pop_up.draw(&self.avail_upgrades);
+            if self.unlocked {
+                self.pop_up.draw_jumpgate(&self.station, &self.avail_upgrades, self.earn, self.prog, self.limit);
+            } else {
+                self.pop_up.draw(&self.station, &self.avail_upgrades);
+            }
         }
 
         // Draw collection numbers
@@ -148,6 +181,10 @@ impl POI for Jumpgate {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn get_station(&self) -> &Station {
+        &self.station
     }
     
     fn produce(&mut self) -> u64 {

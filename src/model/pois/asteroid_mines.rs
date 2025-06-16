@@ -5,6 +5,8 @@ pub const MINES_BOX: (i32, i32, i32, i32) = (128, 0, 64, 64);
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct AsteroidMines {
     pub drones: Vec<Drone>,
+
+    station: Station,
     pub drone_level: u32,
     pub drone_speed: u32,
 
@@ -25,9 +27,15 @@ pub struct AsteroidMines {
 impl AsteroidMines {
     pub fn load() -> Self {
         let hitbox = Bounds::new(128, 0, 64, 64);
-        let pop_up =  PopUp::new("ASTEROID MINES".to_string());
+        let pop_up =  PopUp::new("ASTEROID MINES".to_string(), Resources::Metals);
         AsteroidMines {
             drones: vec![],
+            station: Station {
+                drone_base: 20.,
+                drone_eff: 1.0,
+                drone_speed: 600.,
+            },
+
             drone_level: 0,
             drone_speed: 0,
 
@@ -60,9 +68,9 @@ impl AsteroidMines {
         // Update pop up position and buttons, apply upgrades
         if self.hovered {
             // Pop up returns upgrade player clicks
-            if let Some(upgrade) = self.pop_up.update(self.hitbox, &mut self.avail_upgrades, &MINES_UPGRADES, &player.resources) {
+            if let Some(upgrade) = self.pop_up.update(self.hitbox, &self.station, &mut self.avail_upgrades, &MINES_UPGRADES, &player.resources) {
                 self.upgrade(&upgrade, event_manager);
-                player.upgrade(&upgrade, self);
+                player.upgrade(&upgrade);
             }
         }
         
@@ -167,7 +175,7 @@ impl AsteroidMines {
     pub fn draw_ui(&self) {
         // pop up
         if self.hovered {
-            self.pop_up.draw(&self.avail_upgrades);
+            self.pop_up.draw(&self.station, &self.avail_upgrades);
         }
     }
 
@@ -180,6 +188,10 @@ impl POI for AsteroidMines {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+    
+    fn get_station(&self) -> &Station {
+        &self.station
     }
 
     fn produce(&mut self) -> u64 {

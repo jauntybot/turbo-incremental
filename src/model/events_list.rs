@@ -74,7 +74,17 @@ pub static CUTSCENES: Lazy<Vec<Dialogue>> = Lazy::new(|| vec![
     },
     Dialogue {
         messages: vec![
-            "Reset all your progress and start the game over?".to_string(),
+            "Reset all your progress including Prestige?".to_string(),
+        ],
+        camera_pos: vec![((320, 240), 0)], // ((COMPLEX_BOX.0 + COMPLEX_BOX.2/2, COMPLEX_BOX.1 + COMPLEX_BOX.3/2), 2),
+        d_box: DialogueBox::new(),
+        event_broadcast: 1,
+        prompt: true,
+    },
+
+        Dialogue {
+        messages: vec![
+            "Earn Prestige and start over in a new sector?".to_string(),
         ],
         camera_pos: vec![((320, 240), 0)], // ((COMPLEX_BOX.0 + COMPLEX_BOX.2/2, COMPLEX_BOX.1 + COMPLEX_BOX.3/2), 2),
         d_box: DialogueBox::new(),
@@ -83,13 +93,12 @@ pub static CUTSCENES: Lazy<Vec<Dialogue>> = Lazy::new(|| vec![
     },
     Dialogue {
         messages: vec![
-            "Another sector is waiting observation.".to_string(),
-            "Play again?".to_string(),
+            "Another sector is waiting observation!".to_string(),
             "".to_string(),
         ],
-        camera_pos: vec![((320, 240), 0)], // ((COMPLEX_BOX.0 + COMPLEX_BOX.2/2, COMPLEX_BOX.1 + COMPLEX_BOX.3/2), 2),
+        camera_pos: vec![((320, 200), 0)], // ((COMPLEX_BOX.0 + COMPLEX_BOX.2/2, COMPLEX_BOX.1 + COMPLEX_BOX.3/2), 2),
         d_box: DialogueBox::new(),
-        event_broadcast: 2,
+        event_broadcast: 1,
         prompt: false,
     },
 ]);

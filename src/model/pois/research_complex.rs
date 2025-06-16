@@ -5,6 +5,7 @@ pub static COMPLEX_BOX: (i32, i32, i32, i32) = (448, 352, 64, 64);
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct ResearchComplex {
     pub drones: Vec<Drone>,
+    station: Station,
     pub drone_level: u32,
     pub drone_speed: u32,
 
@@ -25,9 +26,15 @@ pub struct ResearchComplex {
 impl ResearchComplex {
     pub fn load() -> Self {
         let hitbox = Bounds::new(COMPLEX_BOX.0, COMPLEX_BOX.1, COMPLEX_BOX.2, COMPLEX_BOX.3);   
-        let pop_up =  PopUp::new("RESEARCH COMPLEX".to_string());
+        let pop_up =  PopUp::new("RESEARCH COMPLEX".to_string(), Resources::Research);
         ResearchComplex { 
             drones: vec![],
+            station: Station {
+                drone_base: 20.,
+                drone_eff: 1.0,
+                drone_speed: 600.,
+            },
+
             drone_level: 0,
             drone_speed: 0,
 
@@ -60,9 +67,9 @@ impl ResearchComplex {
         // Update pop up position and buttons, apply upgrades
         if self.hovered {
             // Pop up returns upgrade player clicks
-            if let Some(upgrade) = self.pop_up.update(self.hitbox, &mut self.avail_upgrades, &COMPLEX_UPGRADES, &player.resources) {
+            if let Some(upgrade) = self.pop_up.update(self.hitbox, &self.station, &mut self.avail_upgrades, &COMPLEX_UPGRADES, &player.resources) {
                 self.upgrade(&upgrade, event_manager);
-                player.upgrade(&upgrade, self);
+                player.upgrade(&upgrade);
             }
         }
 
@@ -143,7 +150,7 @@ impl ResearchComplex {
 
         if self.hovered {
             // pop up
-            self.pop_up.draw(&self.avail_upgrades);
+            self.pop_up.draw(&self.station, &self.avail_upgrades);
         }
 
         // Draw collection numbers
@@ -162,6 +169,10 @@ impl POI for ResearchComplex {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn get_station(&self) -> &Station {
+        &self.station
     }
     
     fn produce(&mut self) -> u64 {

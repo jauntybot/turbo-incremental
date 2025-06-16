@@ -1,6 +1,22 @@
 use super::*;
 use once_cell::sync::Lazy;
 
+pub static UNASSGIN: Lazy<Upgrade> = Lazy::new(|| Upgrade {
+    name: "UNASSIGN".to_string(),
+    description: "Unassign a DRONE from this station.".to_string(),
+    cost: vec![],
+    entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
+    level: 0,
+    max_level: 0,
+    unlocks: vec![],
+    buy_button: Btn::buy(),
+    tooltip: WrapBox::new("".to_string(), 0),
+    hovered: false,
+    display_lvl: false,
+    cost_formula: CostFormula::None,
+    base_cost: vec![],
+});
+
 pub static EXOPLANET_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
     Upgrade {
         name: "FIELD SCANNER".to_string(),
@@ -301,11 +317,11 @@ pub static GATE_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
     },
     Upgrade {
         name: "JUMP TO NEXT SECTOR".to_string(),
-        description: "End game. Proceed to next sector and start again".to_string(),
+        description: "Earn Prestige. Proceed to next sector and start again".to_string(),
         cost: vec![], //vec![(Resources::Research, 240_000), (Resources::Metals, 90_000), (Resources::Power, 50_000)],
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         level: 0,
-        max_level: 1,
+        max_level: 10000000,
         unlocks: vec![],
         buy_button: Btn::buy(),
         tooltip: WrapBox::new("".to_string(), 0),
@@ -335,6 +351,39 @@ pub static COMPLEX_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
     Upgrade {
         name: "DEPLOY RESEARCH DRONE".to_string(),
         description: "Assign a DRONE to complete RESEARCH PROJECTS".to_string(),
+        cost: vec![(Resources::Drones, 1)],
+        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
+        level: 0,
+        max_level: 100,
+        unlocks: vec![],
+        buy_button: Btn::buy(),
+        tooltip: WrapBox::new("".to_string(), 0),
+        hovered: false,
+        display_lvl: false,
+        cost_formula: CostFormula::None,
+        base_cost: vec![(Resources::Drones, 1)],
+    },
+]);
+
+pub static PROBE_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
+    Upgrade {
+        name: "BASE".to_string(),
+        description: "Increase the BASE of all DRONES by 2x".to_string(),
+        cost: vec![(Resources::Prestige, 1)],
+        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
+        level: 0,
+        max_level: 1,
+        unlocks: vec![1],
+        buy_button: Btn::buy(),
+        tooltip: WrapBox::new("".to_string(), 0),
+        hovered: false,
+        display_lvl: false,
+        cost_formula: CostFormula::None,
+        base_cost: vec![(Resources::Research, 0)],
+    },
+    Upgrade {
+        name: "EFFECIENCY".to_string(),
+        description: "Increase the EFF. of all DRONES by 2x".to_string(),
         cost: vec![(Resources::Drones, 1)],
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         level: 0,

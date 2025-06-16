@@ -49,6 +49,9 @@ impl EventManager {
                 if dialogue.event_broadcast <= 0 {
                     handler(event);
                     self.events.clear();
+                    if dialogue.prompt {
+                        self.dialogue = None;
+                    }
                 }
             } else {
                 match event {
@@ -68,7 +71,12 @@ impl EventManager {
                         self.dialogue = Some(CUTSCENES[4].clone().start()); 
                     }
                     Event::Prestige => {
-                        self.dialogue = Some(CUTSCENES[5].clone().start());
+                        if self.over {
+                            self.events.clear();
+                            self.over = false;
+                        } else {
+                            self.dialogue = Some(CUTSCENES[7].clone().start());
+                        }
                     }
                     Event::ResetGame => {
                         if self.over {
@@ -79,7 +87,7 @@ impl EventManager {
                         }
                     }
                     Event::EndGame => {
-                        self.dialogue = Some(CUTSCENES[7].clone().start());
+                        self.dialogue = Some(CUTSCENES[8].clone().start());
                     }
                     _ => {
                         handler(event);
@@ -160,10 +168,8 @@ impl Dialogue {
         } else {
             if let Some(p) = self.d_box.prompt(player) {
                 if p {
-                    log!("confirmed");
                     self.event_broadcast -= 1;
                 } else {
-                    log!("canceled");
                     return false
                 }
             }

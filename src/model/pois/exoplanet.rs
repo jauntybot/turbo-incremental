@@ -9,8 +9,8 @@ pub struct Exoplanet {
     pub drones: Vec<Drone>,
     pub scanner_level: u32,
     collecting: bool,
-    pub drone_level: u32,
-    pub drone_speed: u32,
+
+    pub station: Station,
 
     pub hitbox: Bounds,
     pop_up: PopUp,
@@ -21,18 +21,24 @@ pub struct Exoplanet {
     scans: Vec<Scan>,
     collect_interval: usize,
 
+    assigned: bool,
+
     avail_upgrades: Vec<Upgrade>,
 }
 impl Exoplanet {
     pub fn load() -> Self {
         let hitbox = Bounds::new(PLANET_BOX.0, PLANET_BOX.1, PLANET_BOX.2, PLANET_BOX.3);
-        let pop_up =  PopUp::new("EXOPLANET".to_string());
+        let pop_up =  PopUp::new("EXOPLANET".to_string(), Resources::Research);
         Exoplanet {
             drones: vec![],
             scanner_level: 1,
             collecting: false,
-            drone_level: 0,
-            drone_speed: 0,
+
+            station: Station {
+                drone_base: 20.,
+                drone_eff: 1.0,
+                drone_speed: 800.,
+            },
 
             hitbox,
             pop_up: pop_up.clone(),
@@ -42,6 +48,8 @@ impl Exoplanet {
             collections: vec![],
             scans: vec![],
             collect_interval: 20,
+
+            assigned: false,
 
             avail_upgrades: vec![EXOPLANET_UPGRADES[0].clone().init(pop_up.panel, 0)],
         }
@@ -53,7 +61,8 @@ impl Exoplanet {
         
         // Hover check
         if event_manager.dialogue.is_none() {
-            self.hovered = self.hitbox.intersects_xy(rp) || (self.hovered && self.pop_up.hovered()); 
+            self.hovered = self.hitbox.intersects_xy(rp) || (self.hovered && (self.pop_up.inspecting() || self.pop_up.hovered())); 
+            if self.hovered { player.hovered_else = true; }
         } else {
             self.hovered = false;
         }
@@ -61,9 +70,9 @@ impl Exoplanet {
         // Update pop up position and buttons, apply upgrades
         if self.hovered {
             // Pop up returns upgrade player clicks
-            if let Some(upgrade) = self.pop_up.update(self.hitbox, &mut self.avail_upgrades, &EXOPLANET_UPGRADES, &player.resources) {
+            if let Some(upgrade) = self.pop_up.update(self.hitbox, &self.station, &mut self.avail_upgrades, &EXOPLANET_UPGRADES, &player.resources) {
                 self.upgrade(&upgrade, event_manager);
-                player.upgrade(&upgrade, self);
+                player.upgrade(&upgrade);
             }
         }
 
@@ -150,7 +159,7 @@ impl Exoplanet {
     pub fn draw_ui(&self) {
         // pop up
         if self.hovered {
-            self.pop_up.draw(&self.avail_upgrades);
+            self.pop_up.draw(&self.station, &self.avail_upgrades);
         }
     }
 
@@ -165,6 +174,10 @@ impl POI for Exoplanet {
         self
     }
     
+    fn get_station(&self) -> &Station {
+        &self.station
+    }
+
     fn manual_produce(&mut self) -> u64 {
         let pp = pointer().xy();
         let pos = (pp.0 as f32 + 5., pp.1 as f32 - 5.);
@@ -175,8 +188,8 @@ impl POI for Exoplanet {
     fn produce(&mut self) -> u64 {
         let mut produced = 0;
         for drone in self.drones.iter_mut() {
-            if drone.survey() {
-                let amount =  ((1.0 + self.drone_level as f32 * 0.8) * 20.) as u64;
+            if drone.survey(&self.station) {
+                let amount =  (self.station.drone_eff * self.station.drone_base) as u64;
                 produced += amount;
                 self.collections.push(Collection::new(drone.pos, (Resources::Research, amount)));
             }
@@ -192,18 +205,23 @@ impl POI for Exoplanet {
             }
         } else if upgrade.name.starts_with("DEPLOY") {
             let xy = self.hitbox.translate(self.hitbox.w()/2,self.hitbox.h()/2).xy();
-            self.drones.push(Drone::new(DroneMode::Survey, self.drone_level, self.drone_speed, xy));
+            self.drones.push(Drone::new(DroneMode::Survey, self.station.drone_eff as u32, self.station.drone_speed as u32, xy));
             self.pop_up.drones += 1;
-            if self.drones.len() == 1 {
+            if !self.assigned {
                 event_manager.trigger(Event::MinesUnlockable);
+                self.assigned = true;
             }
+        } else if upgrade.name.starts_with("UNASSIGN") {
+            if self.drones.len() == 0 { return; }
+            self.drones.remove(0);
+            self.pop_up.drones -= 1;
         } else if upgrade.name.starts_with("ADV.") {
-            self.drone_level += 1;
+            self.station.drone_eff += 0.8;
             for drone in self.drones.iter_mut() {
                 drone.level += 1;
             }
         } else if upgrade.name.starts_with("BIO") {
-            self.drone_speed += 1;
+            self.station.drone_speed *= 0.95;
             for drone in self.drones.iter_mut() {
                 drone.speed += 1;
             }

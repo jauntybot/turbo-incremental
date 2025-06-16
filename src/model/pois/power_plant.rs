@@ -5,6 +5,9 @@ pub const PLANT_BOX: (i32, i32, i32, i32) = (576, 64, 64, 74);
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct PowerPlant {
     pub drones: Vec<Drone>,
+
+    station: Station,
+
     pub drone_level: u32,
     pub drone_speed: u32,
 
@@ -24,9 +27,14 @@ pub struct PowerPlant {
 impl PowerPlant {
     pub fn load() -> Self {
         let hitbox = Bounds::new(PLANT_BOX.0, PLANT_BOX.1, PLANT_BOX.2, PLANT_BOX.3);
-        let pop_up =  PopUp::new("POWER PLANT".to_string());
+        let pop_up =  PopUp::new("POWER PLANT".to_string(), Resources::Power);
         PowerPlant {
             drones: vec![],
+            station: Station {
+                drone_base: 20.,
+                drone_eff: 1.0,
+                drone_speed: 600.,
+            },
             drone_level: 0,
             drone_speed: 0,
             unlockable: false,
@@ -47,9 +55,9 @@ impl PowerPlant {
     pub fn update(&mut self, player: &mut Player, event_manager: &mut EventManager, nebula: &mut NebulaStorm) {
         // Update pop up position and buttons, apply upgrades
         if self.hovered {
-            if let Some(upgrade) = self.pop_up.update(self.hitbox, &mut self.avail_upgrades, &POWER_UPGRADES, &player.resources) {
+            if let Some(upgrade) = self.pop_up.update(self.hitbox, &self.station, &mut self.avail_upgrades, &POWER_UPGRADES, &player.resources) {
                 self.upgrade(&upgrade, event_manager);
-                player.upgrade(&upgrade, self);
+                player.upgrade(&upgrade);
             }
         }
 
@@ -156,7 +164,7 @@ impl PowerPlant {
     pub fn draw_ui(&self) {
         // pop up
         if self.hovered {
-            self.pop_up.draw(&self.avail_upgrades);
+            self.pop_up.draw(&self.station, &self.avail_upgrades);
         }
     }
 }
@@ -169,6 +177,10 @@ impl POI for PowerPlant {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn get_station(&self) -> &Station {
+        &self.station
     }
 
     fn produce(&mut self) -> u64 {

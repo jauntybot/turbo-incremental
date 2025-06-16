@@ -3,7 +3,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct Player {
     pub resources: Vec<(Resources, u64)>,
-    pub xy: (f32, f32),
+    hitbox: Bounds,
     target_pos: (f32, f32),
     dir: f32,
 
@@ -14,45 +14,81 @@ pub struct Player {
     jumping: bool,
     jump_timer: u32,
     gate_aligned: bool,
+
+    pub prestige_prog: u64,
+    pub prestige_index: u32,
+    pub prestige_limit: u64,
+    pub prestige_earned: u64,
+    pop_up: PopUp,
+    hovered: bool,
+    pub hovered_else: bool,
+    pub avail_upgrades: Vec<Upgrade>,
 }
 
 impl Player {
-    pub fn load() -> Self {
+    pub fn load(prestiged: bool, prestige_earned: u64, prestige_prog: u64, prestige_index: u32, avail_upgrades: Vec<Upgrade>) -> Self {
+//        let hitbox = Bounds::new(xy)
         Player {
             resources: vec![
-                // (Resources::Research, 4000000000),
-                // (Resources::Drones, 4000000000),
-                // (Resources::Metals, 4000000000),
-                // (Resources::Power, 4000000000),
+                (Resources::Research, 4000000000),
+                (Resources::Drones, 4000000000),
+                (Resources::Metals, 4000000000),
+                (Resources::Power, 4000000000),
+                (Resources::Prestige, prestige_earned),
             ],
-            xy: (320., 600.),
+            hitbox: Bounds::new(320., 600., 16, 16),
             target_pos: (0., 0.),
             dir: 0.,
 
             camera: CameraCtrl::load(),
             scans: vec![],
-            prestiged: false,
+            prestiged,
             jumping: false,
             jump_timer: 0,
             gate_aligned: false,
+
+            prestige_prog,
+            prestige_index,
+            prestige_limit: CostFormula::Exponential.calculate_cost(vec![(Resources::Prestige, 200_000)], prestige_index)[0].1,
+            prestige_earned: 0,
+            pop_up: PopUp::new("RESEARCH PROBE".to_string(), Resources::Prestige),
+            hovered: false,
+            hovered_else: false,
+            avail_upgrades,
         }
     } 
 
     pub fn update(&mut self, event_manager: &mut EventManager) {
+        self.hovered_else = false;
         if !self.jumping {
             self.target_pos = camera::xy();
             
-            self.xy.0 = self.xy.0 as f32 + (self.target_pos.0 - self.xy.0) as f32 * 0.1;
-            self.xy.1 = self.xy.1 as f32 + (self.target_pos.1 - self.xy.1) as f32 * 0.1;
+            self.hitbox = self.hitbox.position(
+                (self.hitbox.xy().0 as f32 + (self.target_pos.0 - self.hitbox.xy().0 as f32) * 0.1) as i32,
+                (self.hitbox.xy().1 as f32 + (self.target_pos.1 - self.hitbox.xy().1 as f32) * 0.1) as i32
+            );
             
-            let dx = self.target_pos.0 - self.xy.0;
-            let dy = self.target_pos.1 - self.xy.1;
+            if event_manager.dialogue.is_none() {
+                self.hovered = self.prestiged && !self.hovered_else && (self.hitbox.intersects_xy(pointer().xy()) || (self.hovered && self.pop_up.hovered())); 
+            } else {
+                self.hovered = false;
+            }
+
+            if self.hovered {
+                // Pop up returns upgrade player clicks
+                if let Some(upgrade) = self.pop_up.update(self.hitbox, &Station{drone_base: 20.,drone_eff: 1.0,drone_speed: 2000.,}, &mut self.avail_upgrades, &PROBE_UPGRADES, &self.resources) {
+                    self.upgrade(&upgrade);
+                }
+            }
+
+            let dx = self.target_pos.0 - self.hitbox.xy().0 as f32;
+            let dy = self.target_pos.1 - self.hitbox.xy().1 as f32;
             let angle = dy.atan2(dx).to_degrees(); // Angle in radians
             let distance_to_target = (
-                self.target_pos.0 - self.xy.0,
-                self.target_pos.1 - self.xy.1,
+                self.target_pos.0 - self.hitbox.xy().0 as f32,
+                self.target_pos.1 - self.hitbox.xy().1 as f32,
             );
-            if distance_to_target.0.abs() > 0.1 && distance_to_target.1.abs() > 0.1 {
+            if distance_to_target.0.abs() > 0.01 && distance_to_target.1.abs() > 0.01 {
                 self.dir = angle + 90.;
             }
             
@@ -60,11 +96,25 @@ impl Player {
             self.camera.update_cam();
 
             self.scans.retain_mut(|scan| {
-                scan.update(self.xy)
+                scan.update((self.hitbox.x() as f32, self.hitbox.y() as f32))
             });
+            
+            if self.hovered {
+                // Pop up returns upgrade player clicks
+                if let Some(upgrade) = self.pop_up.update(self.hitbox, &Station{drone_base: 20.,drone_eff: 1.0,drone_speed: 2000.,}, &mut self.avail_upgrades, &GATE_UPGRADES, &self.resources) {
+                    self.upgrade(&upgrade);
+                }
+            }
 
         } else {
             self.jump(event_manager);
+        }
+
+        if self.prestige_prog >= self.prestige_limit {
+            self.prestige_earned += 1;
+            self.prestige_index += 1;
+            self.prestige_limit = CostFormula::Exponential.calculate_cost(vec![(Resources::Prestige, 200_000)], self.prestige_index)[0].1;
+            self.prestige_prog = 0;
         }
     }
 
@@ -72,11 +122,14 @@ impl Player {
         if !self.gate_aligned {
             //log!("aligning");
             self.target_pos = ((GATE_BOX.0 + GATE_BOX.2/2) as f32, (GATE_BOX.1 - 16) as f32);
-            self.xy.0 = self.xy.0 as f32 + (self.target_pos.0 - self.xy.0) as f32 * 0.1;
-            self.xy.1 = self.xy.1 as f32 + (self.target_pos.1 - self.xy.1) as f32 * 0.1;
+            self.hitbox = self.hitbox.position(
+                (self.hitbox.xy().0 as f32 + (self.target_pos.0 - self.hitbox.xy().0 as f32) * 0.1) as i32,
+                (self.hitbox.xy().1 as f32 + (self.target_pos.1 - self.hitbox.xy().1 as f32) * 0.1) as i32
+            );
+            
             let distance_to_target = (
-                self.target_pos.0 - self.xy.0,
-                self.target_pos.1 - self.xy.1,
+                self.target_pos.0 - self.hitbox.xy().0 as f32,
+                self.target_pos.1 - self.hitbox.xy().1 as f32,
             );
             if distance_to_target.0.abs() < 1.0 {
                 self.gate_aligned = true;
@@ -86,16 +139,16 @@ impl Player {
 
             // Rubber band up (decelerating motion)
             if self.jump_timer <= 50 {
-                self.xy.1 -= (50 - self.jump_timer) as f32 * 0.15; // Move up slower as time progresses
+                self.hitbox = self.hitbox.translate_y(((50 - self.jump_timer) as f32 * 0.15) as i32); // Move down faster as time progresses
                 self.dir += (180.0 - self.dir) * 0.1;
             }
             // Slingshot down (accelerating motion)
             else if self.jump_timer <= 150 {
-                self.xy.1 += (self.jump_timer - 50) as f32 * 0.5; // Move down faster as time progresses
+                self.hitbox = self.hitbox.translate_y((self.jump_timer - 50) as f32 * 0.5);
             }
 
-            if self.xy.1 >= (GATE_BOX.1 + GATE_BOX.3/2 - 2) as f32 {
-                self.xy.1 += 400.;
+            if self.hitbox.xy().1 as f32 >= (GATE_BOX.1 + GATE_BOX.3/2 - 2) as f32 {
+                self.hitbox = self.hitbox.translate_y(400);
             }
 
             // Trigger the end game event after the motion completes
@@ -107,6 +160,8 @@ impl Player {
     }
 
     pub fn collect(&mut self, resource: (Resources, u64)) {
+        self.prestige_prog += resource.1;
+        // Append value to exisiting resource
         let mut found = false;
         for i in 0..self.resources.len() {
             if self.resources[i].0 == resource.0 {
@@ -115,6 +170,7 @@ impl Player {
                 break;
             }
         }
+        // Append resrouce and value
         if !found {
             self.resources.push(resource);
         }   
@@ -133,7 +189,7 @@ impl Player {
         }
     }
 
-    pub fn upgrade(&mut self, upgrade: &Upgrade, poi: &mut dyn POI) {
+    pub fn upgrade(&mut self, upgrade: &Upgrade) {
         // Determine if the player has sufficent resources
         let mut found = false;
         for cost in upgrade.cost.iter() {
@@ -153,22 +209,17 @@ impl Player {
         if !found {
             return;
         }
-        // Match the concrete type of `poi`
-        if let Some(_) = poi.as_any_mut().downcast_mut::<Exoplanet>() {
-            if upgrade.name.starts_with("FIELD") {
-                //exoplanet.scanner_level += 1;
-            }
-        } else if let Some(_) = poi.as_any_mut().downcast_mut::<DroneDepot>() {
-            if upgrade.name == "DRONE SHIPMENT" {
-                self.collect((Resources::Drones, 1));
-            }
-        }
+
     }
 
     pub fn handle_event(&mut self, event: &Event) {
         match event {
             Event::Prestige => {
                 self.jumping = true;
+                if !self.prestiged {
+                    self.avail_upgrades.push(PROBE_UPGRADES[0].clone());
+                    self.avail_upgrades.push(PROBE_UPGRADES[1].clone());
+                }
             }
             _ => {}
         }
@@ -177,7 +228,7 @@ impl Player {
     pub fn scan(&mut self) {
         let pp = pointer().xy();
         let pos = (pp.0 as f32 + 5., pp.1 as f32 - 5.);
-        self.scans.push(Scan::new(self.xy, pos));
+        self.scans.push(Scan::new((self.hitbox.x() as f32, self.hitbox.y() as f32), pos));
     }
 
     pub fn draw(&self) {
@@ -185,15 +236,23 @@ impl Player {
             scan.draw();
         }
         // rect!( 
-        //     xy = (self.xy.0 - 8., self.xy.1 - 8.),
+        //     xy = (self.hitbox.xy().0 - 8., self.hitbox.xy().1 - 8.),
         //     wh = (16, 16),
         // );
+        if self.hovered {
+            sprite!(
+            "player_hovered", 
+            xy = (self.hitbox.xy().0 - 9, self.hitbox.xy().1 - 9),
+            rotation = self.dir,
+        );
+        }
 
         sprite!(
             "player", 
-            xy = (self.xy.0 - 8., self.xy.1 - 8.),
+            xy = (self.hitbox.xy().0 - 8, self.hitbox.xy().1 - 8),
             rotation = self.dir,
         );
+        text!("{}", self.prestige_prog; xy = (self.hitbox.xy().0 - 8, self.hitbox.xy().1 - 8),);
 
         if self.jumping && self.jump_timer >= 60 {
             let anim = animation::get("jump");
@@ -207,12 +266,49 @@ impl Player {
 
         PlayerDisplay::draw(&self.resources);
     }
+
+    pub fn draw_ui(&self) { 
+        // pop up
+        if self.hovered {
+            self.pop_up.draw(&Station{ drone_base: 20.,
+            drone_eff: 1.0,
+            drone_speed: 0.,}, &self.avail_upgrades);
+        }
+    }
 }
 
 impl Default for Player {
     fn default() -> Self {
-        Player::load()
+        Player::load(false, 0, 0, 0, vec![])
     }
+}
+
+impl POI for Player {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    fn get_station(&self) -> &Station {
+        &Station {
+            drone_base: 20.,
+            drone_eff: 1.0,
+            drone_speed: 0.,
+        }
+    }
+
+    fn manual_produce(&mut self) -> u64 {
+        return 0;
+    }
+
+    fn produce(&mut self) -> u64 {
+        return 0;
+    }
+
+    fn upgrade(&mut self, upgrade: &Upgrade, event_manager: &mut EventManager) {}
 }
 
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]

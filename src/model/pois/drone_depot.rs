@@ -5,6 +5,8 @@ pub const DEPOT_BOX: (i32, i32, i32, i32) = (160, 284, 64, 64);
 #[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
 pub struct DroneDepot {
     pub drones: Vec<Drone>,
+
+    station: Station,
     pub drone_level: u32,
     drone_speed: u32,
 
@@ -33,12 +35,18 @@ pub struct DroneDepot {
 impl DroneDepot {
     pub fn load() -> Self {
         let hitbox = Bounds::new(DEPOT_BOX.0, DEPOT_BOX.1, DEPOT_BOX.2, DEPOT_BOX.3);
-        let pop_up =  PopUp::new("DRONE DEPOT".to_string());
-        let fabricator =  PopUp::new("FABRICATOR".to_string());
+        let pop_up =  PopUp::new("DRONE DEPOT".to_string(), Resources::Drones);
+        let fabricator =  PopUp::new_fab("FABRICATOR".to_string(), Resources::Drones);
         let anim = animation::get("drone_locked");
         anim.use_sprite("vignette");
         DroneDepot {
             drones: vec![],
+
+            station: Station {
+                drone_base: 20.,
+                drone_eff: 1.0,
+                drone_speed: 600.,
+            },
             drone_level: 0,
             drone_speed: 0,
 
@@ -106,16 +114,16 @@ impl DroneDepot {
         if self.hovered {
             let z = camera::z() as i32;
             let mut offset = if self.fabricator_unlocked { self.hitbox.translate_y(-(self.pop_up.panel.h() as i32/2 + 1) * 1/z) } else { self.hitbox };
-            if let Some(upgrade) = self.pop_up.update(offset, &mut self.avail_upgrades, &DEPOT_UPGRADES, &player.resources) {
+            if let Some(upgrade) = self.pop_up.update(offset, &self.station, &mut self.avail_upgrades, &DEPOT_UPGRADES, &player.resources) {
                 self.upgrade(&upgrade, event_manager);
-                player.upgrade(&upgrade, self);
+                player.upgrade(&upgrade);
             }
             
             if self.fabricator_unlocked {
                 offset = self.hitbox.translate_y((self.fabricator.panel.h() as i32/2 + 1) * 1/z);
-                if let Some(upgrade) = self.fabricator.update_fabricator(offset, &mut self.fab_upgrades, &DEPOT_UPGRADES, &player.resources) {
+                if let Some(upgrade) = self.fabricator.update_fabricator(offset, &self.station, &mut self.fab_upgrades, &DEPOT_UPGRADES, &player.resources) {
                     self.upgrade(&upgrade, event_manager);
-                    player.upgrade(&upgrade, self);
+                    player.upgrade(&upgrade);
                 }
             }
         }
@@ -200,21 +208,20 @@ impl DroneDepot {
                 drone.draw();
             }
         }
-        
-        // Draw collection numbers
-        for collection in self.collections.iter() {
-            collection.draw();
-        }
     }
 
     
     pub fn draw_ui(&self) {
         // pop up
         if self.hovered {
-            self.pop_up.draw(&self.avail_upgrades);
+            self.pop_up.draw(&self.station, &self.avail_upgrades);
             if self.fabricator_unlocked {
-                self.fabricator.draw_fabricator(&self.fab_upgrades, self.fab_prog, self.fab_limit);
+                self.fabricator.draw_fabricator(&self.station, &self.fab_upgrades, self.fab_prog, self.fab_limit);
             }
+        }
+        // Draw collection numbers
+        for collection in self.collections.iter() {
+            collection.draw();
         }
     }
 }
@@ -226,6 +233,10 @@ impl POI for DroneDepot {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn get_station(&self) -> &Station {
+        &self.station
     }
 
     fn produce(&mut self) -> u64 {

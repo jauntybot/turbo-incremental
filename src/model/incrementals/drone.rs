@@ -122,9 +122,9 @@ impl Drone {
         false
     }
 
-    pub fn survey(&mut self) -> bool {
+    pub fn survey(&mut self, station: &Station) -> bool {
         // Calculate the angle based on the timer and interval
-        let angle = ((self.timer as f32 / self.interval as f32) + self.phase) * std::f32::consts::TAU; // TAU = 2 * PI
+        let angle = ((self.timer as f32 / station.drone_speed as f32) + self.phase) * std::f32::consts::TAU; // TAU = 2 * PI
 
         // Define the ellipse dimensions
         let center = ((PLANET_BOX.0 + PLANET_BOX.2/2) as f32, (PLANET_BOX.1 + PLANET_BOX.3/2) as f32); // Center of the ellipse
@@ -132,7 +132,7 @@ impl Drone {
         let radius_y = 25.0;  // Vertical radius
 
         // Oscillation factor (sinusoidal oscillation between 0.75 and 1.0)
-        let raw_oscillation = ((self.timer as f32 / self.interval as f32) * std::f32::consts::TAU).sin();
+        let raw_oscillation = ((self.timer as f32 / station.drone_speed as f32) * std::f32::consts::TAU).sin();
         let oscillation = 0.25 + 0.75 * (0.5 + 0.5 * raw_oscillation); // Oscillates between 0.75 and 1.0
 
         if self.on_site {
@@ -142,14 +142,14 @@ impl Drone {
     
             self.front = self.pos.1 >= center.1;
     
-            self.timer += 1. * (1. + self.speed as f32 * 0.1);
-            let delta = (self.timer as f32 - self.interval as f32).abs() % (self.interval as f32/2.);
+            self.timer += 1.;
+            let delta = (self.timer as f32 - station.drone_speed as f32).abs() % (station.drone_speed as f32/2.);
             if delta <= 1.0 && self.scan.is_none() {
                 let scan = (center.0 + 32. * angle.cos(), center.1 + 32. * oscillation * angle.sin()); 
                 self.scan = Some(Scan::new(self.pos, scan));
                 return true;
             }
-            if self.timer >= self.interval {
+            if self.timer >= station.drone_speed {
                 self.timer = 0.;
             }
     
@@ -160,7 +160,7 @@ impl Drone {
             } 
             false
         } else {
-            self.timer = self.interval/2.-1.;
+            self.timer = station.drone_speed/2.-1.;
             self.target_pos = (center.0 + radius_x * angle.cos(),
                 center.1 + radius_y * oscillation * angle.sin());
             if self.follow(0.1) {
@@ -264,8 +264,7 @@ impl Drone {
                     self.target_pos = asteroid.pos;
                     if self.timer >= self.interval {
                         self.timer = 0.;
-                        let amount = ((1. + self.level as f32 * 1.0) * 12.) as u64;
-                        self.cargo.push((Resources::Metals, amount));
+                        self.cargo.push((Resources::Metals, 0));
                         self.target_pos = (15.0 + (MINES_BOX.0 + rand() as i32 % 33) as f32, 0.0); // Reset target to home after mining
                         asteroid.drilling = false; // Stop drilling animation
                         

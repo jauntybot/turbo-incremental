@@ -20,9 +20,9 @@ turbo::init!(
 );
 
 impl GameState {
-    pub fn new() -> Self {
+    pub fn new(prestiged: bool, prestige_earned: u64, prestige_prog: u64, prestige_index: u32, avail_upgrades: Vec<Upgrade>) -> Self {
         let mut state = GameState {  
-            player: Player::load(),
+            player: Player::load(prestiged, prestige_earned, prestige_prog, prestige_index, avail_upgrades),
             vignette: Vignette::new(),
             event_manager: EventManager::new(),
             exoplanet: Exoplanet::load(),
@@ -50,7 +50,7 @@ impl GameState {
 
     pub fn load_local() -> GameState {
         let data = local::load().unwrap_or_else(|_| vec![]);
-        let mut state = GameState::try_from_slice(&data).unwrap_or_else(|_| GameState::new());
+        let mut state = GameState::try_from_slice(&data).unwrap_or_else(|_| GameState::new(false, 0, 0, 0, vec![]));
         state.vignette.fade = false;
         state.vignette.fade_prog = 255.;
         state
@@ -111,6 +111,7 @@ turbo::go! ({
     }
 
     // Event subscribers
+    let mut prestige = false;
     let mut reset = false;
     let mut save = false;
 
@@ -132,14 +133,22 @@ turbo::go! ({
             }
             Event::EndGame => {
                 state.vignette.fade = true;
-                reset = true;
+                prestige = true;
             }
             _ => {}
         }
     });
 
+    if prestige {
+        let leftover = state.player.resources
+            .iter()
+            .find(|(res, _)| *res == Resources::Prestige)
+            .map(|(_, x)| *x)
+            .unwrap_or(0);
+        state = GameState::new(true, leftover + state.player.prestige_earned, state.player.prestige_prog, state.player.prestige_index, state.player.avail_upgrades.clone());
+    }
     if reset {
-        state = GameState::new();
+        state = GameState::new(false, 0, 0, 0, vec![]);
     }
     if save {
         state.save_local();
@@ -160,6 +169,7 @@ turbo::go! ({
     state.asteroid_mines.draw_ui();
     state.power_plant.draw_ui();
     state.jumpgate.draw_ui();
+    state.player.draw_ui();
 
     sfx.draw();
 
