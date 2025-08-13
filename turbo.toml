@@ -1,8 +1,8 @@
-name = "turbo-incremental"
-version = "0.1.0"
-author = "Anonymous"
+name = "exo-observation"
+version = "0.2.3"
+author = "jauntybot"
 description = "An awesome game made in Turbo!"
 
 [canvas]
 width = 640
-height = 400
+height = 360

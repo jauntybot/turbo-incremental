@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
+#[turbo::serialize]
 pub struct Collection {
     pub is_active: bool,
     created_at: usize,
@@ -17,17 +17,17 @@ impl Collection {
     pub fn new_detail(pos: (f32, f32), value: (Resources, u64), positive: bool) -> Self {
         Self {
             is_active: true,
-            created_at: tick(),
+            created_at: turbo::time::tick(),
             pos,
             value,
             positive,
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self) -> bool {
         // Calculate the lifetime progress (0.0 to 1.0)
         let lifetime = 35; // Total lifetime in ticks
-        let elapsed = tick() - self.created_at;
+        let elapsed = turbo::time::tick() - self.created_at;
         let progress = (elapsed as f32 / (lifetime as f32 - 10.)).min(1.0);
 
         // Gradually reduce the vertical movement speed
@@ -36,8 +36,9 @@ impl Collection {
 
         // Deactivate the collection after its lifetime
         if elapsed > lifetime {
-            self.is_active = false;
+            return false
         }
+        return true
     }
 
     pub fn draw(&self) {

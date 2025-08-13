@@ -1,6 +1,5 @@
-use super::*;
-
-#[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
+#[turbo::serialize]
+#[derive(PartialEq, Eq)]
 pub enum Resources {
     Research,
     Drones,
@@ -16,7 +15,7 @@ impl Resources {
             Resources::Drones => "DRONES. Autonomous workers assigned to gather resources.".to_string(),
             Resources::Metals => "METALS. Crafting components for advanced tech.".to_string(), 
             Resources::Power => "POWER. Energy for amplifying other systems.".to_string(),
-            Resources::Prestige => "PRESTIGE. Used to upgrade the autonomous probe.".to_string(),
+            Resources::Prestige => "PRESTIGE. Experience earned to upgrade the research probe.".to_string(),
         }
     }
 }

@@ -1,8 +1,18 @@
 pub use super::*;
 use std::any::Any;
 
-mod btn;
-pub use btn::*;
+mod environment;
+pub use environment::*;
+
+mod incrementals;
+pub use incrementals::*;
+
+mod pois;
+pub use pois::*;
+
+mod ui_elements;
+pub use ui_elements::*;
+
 
 mod camera_ctrl;
 pub use camera_ctrl::*;
@@ -13,23 +23,6 @@ pub use events::*;
 mod events_list;
 pub use events_list::*;
 
-mod incrementals;
-pub use incrementals::*;
+mod game_manager;
+pub use game_manager::*;
 
-mod noise;
-pub use noise::*;
-
-mod numbers;
-pub use numbers::*;
-
-mod player;
-pub use player::*;
-
-mod pois;
-pub use pois::*;
-
-mod sfx;
-pub use sfx::*;
-
-mod text_box;
-pub use text_box::*;

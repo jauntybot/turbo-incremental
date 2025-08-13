@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
+#[turbo::serialize]
 pub struct CameraCtrl {
     pub zoom_tick: usize,
     pub dragging: bool,
@@ -21,8 +21,9 @@ impl CameraCtrl {
     }
 
     pub fn update(&mut self) {
-        let gp = gamepad(0);
-        let p = pointer();
+        let gp = gamepad::get(0);
+        let p = pointer::screen();
+        let m = mouse::screen();
         let move_speed = 3.;
 
         let mut moved = false;
@@ -44,8 +45,8 @@ impl CameraCtrl {
         }
 
         // Handle pointer input for panning
-        let pp = p.xy_fixed();
-        let damping = 0.4;
+        let pp = p.xy();
+        let damping = 0.6;
         
         if p.just_pressed() {
             self.dragging = true;
@@ -56,20 +57,24 @@ impl CameraCtrl {
             let dy = pp.1 as f32 - self.last_pointer_pos.1;
 
             // Update velocity based on pointer movement
-            self.velocity.0 += -dx;
-            self.velocity.1 += -dy;
+            self.pos.0 -= dx / camera::z();
+            self.pos.1 -= dy / camera::z(); 
+            self.velocity.0 -= dx / camera::z();
+            self.velocity.1 -= dy / camera::z();
 
             self.last_pointer_pos = (pp.0 as f32, pp.1 as f32);
         } else if p.released() {
             self.dragging = false;
         }
 
-        // Apply velocity to the camera position
-        self.pos.0 += self.velocity.0;
-        self.pos.1 += self.velocity.1;
+        if p.released() {
+            // Apply velocity to the camera position
+            self.pos.0 += self.velocity.0;
+            self.pos.1 += self.velocity.1;
+        }
         // Apply damping to gradually reduce velocity
         self.velocity.0 = self.velocity.0 * damping;
-        self.velocity.1 = self.velocity.0 * damping;
+        self.velocity.1 = self.velocity.1 * damping;
 
         if self.velocity.0 >= 0.2 || self.velocity.1 >= 0.2 
             || self.velocity.0 <= -0.2 || self.velocity.1 <= -0.2 {
@@ -84,15 +89,15 @@ impl CameraCtrl {
         }
 
         // zoom
-        if (gp.a.pressed() || p.scroll_delta().1 > 0) && camera::zoom() < 4.0 && (tick() - self.zoom_tick) > 5 {
-            camera::move_zoom(1.0);
-            if camera::zoom() >= 3.0 { camera::set_zoom(4.0); } 
-            self.zoom_tick = tick();
-        } else if (gp.b.pressed() || p.scroll_delta().1 < 0) && camera::zoom() > 0.5 && (tick() - self.zoom_tick) > 5 {
-            camera::move_zoom(-1.0);
-            if camera::zoom() <= 1.0 { camera::set_zoom(1.0); }
-            if camera::zoom() == 3.0 { camera::set_zoom(2.0); }
-            self.zoom_tick = tick();
+        if ((gp.a.pressed()) || m.scroll_xy().1 > 0) && camera::z() < 4.0 && (turbo::time::tick() - self.zoom_tick) > 5 {
+            camera::move_z(1.0);
+            if camera::z() >= 3.0 { camera::set_z(4.0); } 
+            self.zoom_tick = turbo::time::tick();
+        } else if ((gp.b.pressed()) || m.scroll_xy().1 < 0) && camera::z() > 0.5 && (turbo::time::tick() - self.zoom_tick) > 5 {
+            camera::move_z(-1.0);
+            if camera::z() <= 1.0 { camera::set_z(1.0); }
+            if camera::z() == 3.0 { camera::set_z(2.0); }
+            self.zoom_tick = turbo::time::tick();
         }
 
     }

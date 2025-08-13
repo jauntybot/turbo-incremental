@@ -2,24 +2,39 @@ use super::*;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
-#[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
+#[turbo::serialize]
+#[derive(PartialEq)]
 pub enum Event {
     StartGame,
     SaveGame,
     ResetGame,
+    Prestige,
+    EndGame,
+    // Early game progression events
     DroneDepotUnlockable,
     UnlockDroneDepot,
     MinesUnlockable,
     PowerPlantUnlockable,
     UnlockPowerPlant,
     LateGame,
-    Prestige,
-    EndGame,
+    JumpgateBuilt,
+    ResearchComplexBuilt,
+    // Research Complex events
+    FabricatorUnlockable,
+    AmpUnlockable,
+    AdvDronesResearched,
+    Simulacrum,
+    // Prestige events
+    BaseUpgrade { amount: f32 },
+    RecallUpgrade,
+    RecallDrone,
+    InnovationUpgrade,
 }
 
-#[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
+#[turbo::serialize]
 pub struct EventManager {
     events: Vec<Event>,
+    triggered_events: Vec<Event>,
     pub dialogue: Option<Dialogue>,
     over: bool,
 }
@@ -28,14 +43,26 @@ impl EventManager {
     pub fn new() -> Self {
         Self { 
             events: Vec::new(),
-            dialogue: Some(CUTSCENES[0].clone().start()),
+            triggered_events: Vec::new(),
+            dialogue: Some(CS_INTRO.clone().start()),
             over: false,
         }
     }
 
     // Add an event to the queue
     pub fn trigger(&mut self, event: Event) {
+        if event != Event::Prestige 
+            && event != Event::RecallDrone
+            && event != Event::ResetGame 
+            && event != Event::SaveGame
+            && event != (Event::BaseUpgrade { amount: 15. })
+            && self.triggered_events.contains(&event) {
+            return; // Event already triggered, do not add again
+        }
+        self.triggered_events.push(event.clone());
         self.events.push(event);
+        turbo::events::emit("stop", "");
+        log!("added event");
     }
 
     // Process all events in the queue
@@ -48,7 +75,7 @@ impl EventManager {
             if let Some(dialogue) = &mut self.dialogue {
                 if dialogue.event_broadcast <= 0 {
                     handler(event);
-                    self.events.clear();
+                    self.events.remove(0);
                     if dialogue.prompt {
                         self.dialogue = None;
                     }
@@ -56,58 +83,88 @@ impl EventManager {
             } else {
                 match event {
                     Event::StartGame => { 
-                        self.dialogue = Some(CUTSCENES[0].clone().start()); 
+                        self.dialogue = Some(CS_INTRO.clone().start()); 
                     }
                     Event::DroneDepotUnlockable => { 
-                        self.dialogue = Some(CUTSCENES[1].clone().start()); 
+                        self.dialogue = Some(CS_DEPOT_AVAIL.clone().start()); 
                     }
                     Event::MinesUnlockable => { 
-                        self.dialogue = Some(CUTSCENES[2].clone().start()); 
+                        self.dialogue = Some(CS_MINES_AVAIL.clone().start()); 
                     }
                     Event::PowerPlantUnlockable => { 
-                        self.dialogue = Some(CUTSCENES[3].clone().start()); 
+                        self.dialogue = Some(CS_PLANT_AVAIL.clone().start()); 
                     }
                     Event::LateGame => { 
-                        self.dialogue = Some(CUTSCENES[4].clone().start()); 
+                        self.dialogue = Some(CS_LATE_GAME.clone().start()); 
+                    }
+                    Event::JumpgateBuilt => {
+                        self.dialogue = Some(CS_JUMPGATE_BUILT.clone().start()); 
+                    }
+                    Event::ResearchComplexBuilt => {
+                        self.dialogue = Some(CS_COMPLEX_BUILT.clone().start()); 
                     }
                     Event::Prestige => {
                         if self.over {
-                            self.events.clear();
+                            self.events.remove(0);
                             self.over = false;
+                            self.dialogue = None;
+                            turbo::events::emit("start", "");
                         } else {
-                            self.dialogue = Some(CUTSCENES[7].clone().start());
+                            self.dialogue = Some(CS_PRESTIGE_PROMPT.clone().start());
                         }
                     }
                     Event::ResetGame => {
                         if self.over {
-                            self.events.clear();
+                            self.events.remove(0);
                             self.over = false;
+                            self.dialogue = None;
+                            turbo::events::emit("start", "");
                         } else {
-                            self.dialogue = Some(CUTSCENES[6].clone().start());
+                            self.dialogue = Some(CS_RESET_PROMPT.clone().start());
                         }
                     }
                     Event::EndGame => {
-                        self.dialogue = Some(CUTSCENES[8].clone().start());
+                        self.dialogue = Some(CS_OUTRO.clone().start());
+                    }
+                    Event::FabricatorUnlockable => {
+                        self.dialogue = Some(CS_FAB_AVAIL.clone().start()); 
+                    }
+                    Event::AmpUnlockable => {
+                        self.dialogue = Some(CS_AMP_AVAIL.clone().start()); 
+                    }
+                    Event::AdvDronesResearched => {
+                        self.dialogue = Some(CS_ADV_DRONES.clone().start()); 
+                    }
+                    Event::Simulacrum => {
+                        self.dialogue = Some(CS_SIMULACRUM.clone().start()); 
                     }
                     _ => {
                         handler(event);
-                        self.events.clear();
+                        self.events.remove(0);
+                        turbo::events::emit("start", "");
                     }
                 }
             }
         }
         if self.over {
             self.over = false;
+            self.dialogue = None;
+            turbo::events::emit("start", "");
         }
     }
 
     pub fn update(&mut self, player: &mut Player) {
         if let Some(dialogue) = &mut self.dialogue {
-            dialogue.draw();
             if !dialogue.update(player) {
                 self.over = true;
                 self.dialogue = None;
             }
+        }
+    }
+
+    pub fn draw(&mut self) {
+        if let Some(dialogue) = &mut self.dialogue {
+            dialogue.draw();
         }
     }
 }
@@ -118,7 +175,7 @@ impl Default for EventManager {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
+#[turbo::serialize]
 pub struct Dialogue {
     pub messages: Vec<String>,
     pub camera_pos: Vec<((i32, i32), i32)>,
@@ -182,7 +239,7 @@ impl Dialogue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, BorshDeserialize, BorshSerialize)]
+#[turbo::serialize]
 pub struct DialogueBox {
     pub panel: Bounds,
     //pub button: Btn,
@@ -196,7 +253,7 @@ pub struct DialogueBox {
 
 impl DialogueBox {
     pub fn new() -> Self {
-        let panel = Bounds::new(224, 400-64-16, 192, 64);
+        let panel = Bounds::new(224, 360-64-16, 192, 64);
         let btn = Bounds::new(320, 240, 48, 22)
             .anchor_bottom(&panel)
             .anchor_right(&panel)
@@ -242,8 +299,8 @@ impl DialogueBox {
             }
         }
         
-        let p = pointer();
-        if p.intersects_fixed(self.panel.x(), self.panel.y(), self.panel.w(), self.panel.h()) && p.just_pressed() {
+        let p = pointer::screen();
+        if p.intersects(self.panel.x(), self.panel.y(), self.panel.w(), self.panel.h()) && p.just_pressed() {
             player.camera.velocity = (0.,0.);
             player.camera.last_pointer_pos = (0.,0.);
             player.camera.dragging = false;
@@ -273,6 +330,29 @@ impl DialogueBox {
 
     pub fn draw(&self) {
         // Drawing
+        for i in 0..2 {
+            let mut o =  2 + ((time::tick() as f32 / 5. + (i as f32 * 10.)) % 21.) as i32;
+            //log!("{} o: {}", i, o);
+            let alpha = if o >= 10 {
+                // Fade from 0 (at o=6) to 255 (at o=11)
+                let t = (o - 10) as f32 / 9.;
+                ((1.0 - t) * 255.0).round() as u32
+            } else {
+                255
+            };
+            let faded_color = (0xffffff00) | alpha;
+
+            rect!(
+                fixed = true, 
+                xy = (self.panel.x() - o/2, self.panel.y() - o/2), 
+                wh = (self.panel.w() + o as u32, self.panel.h() + o as u32), 
+                border_radius = 4,
+                border_size = 1,
+                color = 0x1f122b00,
+                border_color = faded_color,
+            );
+        }
+
         rect!(
             fixed = true, 
             xy = self.panel.xy(), 
