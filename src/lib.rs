@@ -18,6 +18,7 @@ struct GameState {
     jumpgate: Jumpgate,
     research_complex: ResearchComplex,
     drone_amp: DroneAmp,
+    objective: Objective,
 }
 impl GameState {
     pub fn new() -> Self {
@@ -64,6 +65,7 @@ impl GameState {
             jumpgate: Jumpgate::load(),
             research_complex: ResearchComplex::load(player),
             drone_amp: DroneAmp::load(),
+            objective: Objective::new(),
         };
         state.vignette.fade = false;
         state.save_local();
@@ -171,6 +173,7 @@ impl GameState {
             self.jumpgate.handle_event(event);
             self.research_complex.handle_event(event);
             self.drone_amp.handle_event(event);
+            self.objective.handle_event(event);
             match event {
                 Event::ResetGame => {
                     reset = true;
@@ -215,6 +218,7 @@ impl GameState {
         self.research_complex.draw_ui();
         self.drone_amp.draw_ui();
         self.player.draw_ui();
+        self.objective.draw();
     
         self.manager.draw();
     

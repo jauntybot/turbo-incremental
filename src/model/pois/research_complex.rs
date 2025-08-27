@@ -137,7 +137,7 @@ impl ResearchComplex {
             }
             Event::InnovationUpgrade => {
                 self.station.innovation = true;
-                if self.avail_upgrades.iter().any(|u| u.name.starts_with("DEPLOY")) {
+                if self.drone_upgrades.iter().any(|u| u.name.starts_with("DEPLOY")) {
                     let upgrade = COMPLEX_UPGRADES[2].clone().init(self.pop_up.panel, 1);
                     self.drone_upgrades.insert(1, upgrade);
                 }

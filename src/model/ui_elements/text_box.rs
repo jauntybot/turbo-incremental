@@ -22,23 +22,39 @@ impl WrapBox {
         }
     }
 
+    pub fn new_bounds(text: String, bounds: Bounds, colors_index: u32) -> WrapBox {
+        let max_line_length = 20;
+        let lines = WrapBox::split_text(text, max_line_length);
+        Self {
+            bounds,
+            lines,
+            colors_index,
+            fixed: false,
+        }
+    }
+
+    pub fn update_text(&mut self, text: String) {
+        self.lines = WrapBox::split_text(text, (self.bounds.w() as usize)/5 - 2);
+        self.bounds = Bounds::new(self.bounds.x(), self.bounds.y(), self.bounds.w(), self.lines.len() * 10 + 6);
+    }
+
     pub fn split_text(text: String, max_line_length: usize) -> Vec<String> {
         let mut lines = Vec::new();
-        let mut current_line = String::new();
-        for word in text.split_whitespace() {
-            if current_line.len() + word.len() + 1 > max_line_length {
-                // Push the current line and start a new one
-                lines.push(current_line.trim_start().to_string());
-                current_line = String::new();
+        for raw_line in text.split('\n') {
+            let mut current_line = String::new();
+            for word in raw_line.split_whitespace() {
+                if current_line.len() + word.len() + 1 > max_line_length {
+                    lines.push(current_line.trim_start().to_string());
+                    current_line = String::new();
+                }
+                if !current_line.is_empty() {
+                    current_line.push(' ');
+                }
+                current_line.push_str(word);
             }
             if !current_line.is_empty() {
-                current_line.push(' ');
+                lines.push(current_line.trim_start().to_string());
             }
-            current_line.push_str(word);
-        }
-        // Push the last line if it exists
-        if !current_line.is_empty() {
-            lines.push(current_line.trim_start().to_string());
         }
         lines
     }
