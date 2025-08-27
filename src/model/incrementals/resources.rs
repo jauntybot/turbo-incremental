@@ -6,6 +6,7 @@ pub enum Resources {
     Metals,
     Power,
     Prestige,
+    Ad,
 }
 
 impl Resources {
@@ -16,6 +17,7 @@ impl Resources {
             Resources::Metals => "METALS. Crafting components for advanced tech.".to_string(), 
             Resources::Power => "POWER. Energy for amplifying other systems.".to_string(),
             Resources::Prestige => "PRESTIGE. Experience earned to upgrade the research probe.".to_string(),
+            Resources::Ad => "AD. Advertisements viewed to gain rewards.".to_string(),
         }
     }
 }
@@ -28,6 +30,7 @@ impl std::fmt::Display for Resources {
             Resources::Metals => "METALS",
             Resources::Power => "POWER",
             Resources::Prestige => "PRESTIGE",
+            Resources::Ad => "AD",
         };
         write!(f, "{}", name)
     }

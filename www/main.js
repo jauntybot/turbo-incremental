@@ -568,7 +568,13 @@ window.createWasmImportsProxy = (target = {}) => {
           // Generate a sub function for any accessed property
           return (...args) => {
             console.log(`Calling ${namespace}.${prop} with arguments:`, args);
-            // Implement the actual function logic here
+            if (prop === "paused") {
+              return turbo.paused();
+            }
+            if (prop === "ad_blocker") {
+              return window.CrazyGames.SDK.ad.hasAdBlocker();
+            }
+            return undefined;
           };
         }
       });
@@ -838,16 +844,38 @@ async function run() {
       await new Promise((resolve) => {
         const callbacks = {
           adFinished: () => {
-            console.log("End midgame ad");
+            console.log("End ad");
             resolve();
           },
           adError: (error) => {
-            console.log("Error midgame ad", error);
+            console.log("Error ad", error);
             resolve();
           },
-          adStarted: () => console.log("Start midgame ad"),
+          adStarted: () => console.log("Start ad"),
         };
         window.CrazyGames.SDK.ad.requestAd("midgame", callbacks);
+      });
+
+      turbo.resume();
+      console.log("RESUMED!");
+    } else if (e.detail.name === "rewarded_ad") {
+      turbo.pause();
+      console.log("PAUSED");
+
+      // Run ads
+      await new Promise((resolve) => {
+        const callbacks = {
+          adFinished: () => {
+            console.log("End ad");
+            resolve();
+          },
+          adError: (error) => {
+            console.log("Error ad", error);
+            resolve();
+          },
+          adStarted: () => console.log("Start ad"),
+        };
+        window.CrazyGames.SDK.ad.requestAd("rewarded", callbacks);
       });
 
       turbo.resume();

@@ -18,6 +18,7 @@ struct GameState {
     jumpgate: Jumpgate,
     research_complex: ResearchComplex,
     drone_amp: DroneAmp,
+    objective: Objective,
 }
 impl GameState {
     pub fn new() -> Self {
@@ -64,6 +65,7 @@ impl GameState {
             jumpgate: Jumpgate::load(),
             research_complex: ResearchComplex::load(player),
             drone_amp: DroneAmp::load(),
+            objective: Objective::new(),
         };
         state.vignette.fade = false;
         state.save_local();
@@ -171,6 +173,7 @@ impl GameState {
             self.jumpgate.handle_event(event);
             self.research_complex.handle_event(event);
             self.drone_amp.handle_event(event);
+            self.objective.handle_event(event);
             match event {
                 Event::ResetGame => {
                     reset = true;
@@ -187,7 +190,10 @@ impl GameState {
         });
     
         if prestige {
+            let volume = self.manager.music_slider.value;
+            self.manager.music_slider.value = 0.0;
             events::emit("midgame_ad", "");
+            self.manager.music_slider.value = volume;
             *self = GameState::create(true, &mut self.player, self.manager.clone());
         }
         if reset {
@@ -215,6 +221,7 @@ impl GameState {
         self.research_complex.draw_ui();
         self.drone_amp.draw_ui();
         self.player.draw_ui();
+        self.objective.draw();
     
         self.manager.draw();
     
@@ -248,4 +255,14 @@ impl GameState {
         //     wh = (640, 1),
         // );
     }
+}
+
+// #[link(wasm_import_module = "@turbo_genesis/sys")]
+unsafe extern "C" {
+    #[link_name = "paused"]
+    unsafe fn _paused() -> bool;
+}
+
+pub fn paused() -> bool {
+    unsafe { _paused() }
 }

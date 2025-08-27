@@ -28,4 +28,11 @@ impl Numbers {
             format!("{:.0}", num)
         }
     }
+
+    pub fn time(num: u64) -> String {
+        let secs = num / 60;
+        let minutes = secs / 60;
+        let seconds = secs % 60;
+        format!("{:02}:{:02}", minutes, seconds)
+    }
 }

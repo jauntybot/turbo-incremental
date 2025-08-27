@@ -311,7 +311,6 @@ impl PopUp {
                 DroneMode::Conduit => "CONDUIT",
                 DroneMode::Research => "RESEARCH",
                 DroneMode::Shipping => "SHIPPING",
-                _ => "SURVEY"
             };
             text!(
                 "{} DRONES", &t;

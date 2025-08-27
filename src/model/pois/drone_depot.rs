@@ -18,10 +18,8 @@ pub struct DroneDepot {
     fab_level: u32,
     fab_limit: u64,
 
-    clicked_at: usize,
-    collections: Vec<Collection>,
-    collect_interval: usize,
-    
+    ad_interval: usize,
+    ad_counter: usize,
 
     avail_upgrades: Vec<Upgrade>,
     fab_upgrades: Vec<Upgrade>,
@@ -49,9 +47,8 @@ impl DroneDepot {
             pop_up,
             hovered: false,
 
-            clicked_at: 0,
-            collections: vec![],
-            collect_interval: 30,
+            ad_interval: 120 * 60,
+            ad_counter: 0,
 
             avail_upgrades: vec![],
             fab_upgrades: vec![],
@@ -106,6 +103,17 @@ impl DroneDepot {
             self.hovered = false;
         }
 
+        // CRAZY GAMES AD REWARD
+        if self.station.unlocked {
+            if self.ad_counter >= self.ad_interval {
+                self.avail_upgrades[1].tooltip = WrapBox::new("Watch an ad to recieve 3 DRONES".to_string(), 0);
+            } else {
+                self.ad_counter += 1;
+                self.avail_upgrades[1].tooltip = WrapBox::new(format!("Available in {} \n Watch an ad to recieve 3 DRONES", Numbers::time((self.ad_interval - self.ad_counter) as u64)), 0);
+            }
+            self.avail_upgrades[1].cost[0].1 = (self.ad_interval - self.ad_counter) as u64;
+        }
+
         // Update pop up position and buttons, apply upgrades
         if self.hovered {
             player.hovered_poi = Some(POIType::DroneDepot);
@@ -116,8 +124,10 @@ impl DroneDepot {
                 player.purchase_upgrade(&upgrade);
                 if upgrade.name.starts_with("DRONE") {
                     player.collect((Resources::Drones, 1));
-                    log!("collect");
-                } 
+                } else if upgrade.name.starts_with("SPONSORED") {
+                    turbo::events::emit("rewarded_ad", "");
+                    player.collect((Resources::Drones, 3));
+                }
             }
             
             if self.fabricator_unlocked &&self.fabricator_enabled {
@@ -236,9 +246,14 @@ impl POI for DroneDepot {
                 let upgrade = DEPOT_UPGRADES[6].clone().init(self.pop_up.panel, 1);
                 self.fab_upgrades.insert(1, upgrade);
             }
-        } else if upgrade.name == ("DEPLOY") {
+        } else if upgrade.name.starts_with("SPONSORED") {
+            self.ad_counter = 0;
+            if self.ad_interval < 240 * 60 {
+                self.ad_interval += 30 * 60;
+            }
+        } else if upgrade.name.starts_with("DEPLOY") {
             let xy = self.hitbox.translate(self.hitbox.w()/2,self.hitbox.h()/2).xy();
-            self.station.deploy_drone(DroneMode::Mining, xy);
+            self.station.deploy_drone(DroneMode::Shipping, xy);
             self.fabricator.drones += 1;
         } else if upgrade.name.starts_with("UNASSIGN") {
             if self.station.drones.len() == 0 { return; }

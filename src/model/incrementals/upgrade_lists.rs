@@ -108,7 +108,7 @@ pub static DEPOT_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         level: 0,
         max_level: 1,
-        unlocks: vec![1],
+        unlocks: vec![1, 8],
         u_type: UpgradeType::Purchase { btn: Btn::buy() },
 
         tooltip: WrapBox::new("".to_string(), 0),
@@ -228,6 +228,22 @@ pub static DEPOT_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
         display_lvl: false,
         cost_formula: CostFormula::None,
         base_cost: vec![],
+    },
+    Upgrade {
+        name: "SPONSORED PAYLOAD".to_string(),
+        description: "Watch an ad to recieve 3 DRONES".to_string(),
+        cost: vec![], // vec![(Resources::Research, 120)],
+        entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
+        u_type: UpgradeType::Purchase { btn: Btn::buy() },
+
+        level: 0,
+        max_level: 20_000,
+        unlocks: vec![],
+        tooltip: WrapBox::new("".to_string(), 0),
+        hovered: false,
+        display_lvl: false,
+        cost_formula: CostFormula::Exponential {factor: 1.1},
+        base_cost: vec![(Resources::Ad, 0)],
     },
 ]);
 

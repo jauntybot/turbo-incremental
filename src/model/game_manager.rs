@@ -36,7 +36,7 @@ impl GameManager {
             music_slider: Slider::new(Bounds::new(menu_bounds.x()+43, menu_bounds.y()+spacing/3 + 3,40,11), 0.75),
             sfx_toggle: Btn::new("toggle".to_string(), Bounds::new(menu_bounds.x()+16, menu_bounds.y()+spacing/3+spacing,16,14), false, 1),
             save_button: Btn::new("SAVE".to_string(), Bounds::new(menu_bounds.x()+12, menu_bounds.y()+6+spacing * 2,72,16), true, 1),
-            reset_button: Btn::new("RESET SAVE".to_string(), Bounds::new(menu_bounds.x()+12, menu_bounds.y()+2+spacing * 3,72,16), true, 1),
+            reset_button: Btn::new("RESET SAVE".to_string(), Bounds::new(menu_bounds.x()+12, menu_bounds.y()+4+spacing,72,16), true, 1),
             autosave: true,
             autosave_toggle: Toggle::new(Bounds::new(menu_bounds.x()+13, menu_bounds.y()+spacing/3+spacing,24,14), true),
         }
@@ -69,27 +69,32 @@ impl GameManager {
             //     self.sfx = !self.sfx;
             //     self.sfx_toggle.string = if self.sfx { "toggle".to_string() } else { "".to_string() };
             // }
-            self.save_button.update();
-            if self.save_button.on_click() {
-                self.options = false;
-                event_manager.trigger(Event::SaveGame);
-            }
+            // self.autosave_toggle.update();
+            // if self.autosave_toggle.on_click() {
+            //     self.autosave = !self.autosave;
+            //     //self.autosave_toggle.string = if self.autosave { "toggle".to_string() } else { "".to_string() };
+            // }
+            // self.save_button.update();
+            // if self.save_button.on_click() {
+            //     self.options = false;
+            //     event_manager.trigger(Event::SaveGame);
+            // }
             self.reset_button.update();
             if self.reset_button.on_click() {
                 self.options = false;
                 event_manager.trigger(Event::ResetGame);
             }
-            self.autosave_toggle.update();
-            if self.autosave_toggle.on_click() {
-                self.autosave = !self.autosave;
-                //self.autosave_toggle.string = if self.autosave { "toggle".to_string() } else { "".to_string() };
-            }
         }
 
         if !audio::is_playing("loop") {
             audio::play("loop");
+            turbo::audio::pause("loop", );
         }  else {
-            let volume = (self.music_slider.value.ln_1p() / 1f32.ln_1p()).powf(3.0).clamp(0.0, 1.0);
+            let volume = if paused() {
+                0.0
+            } else {
+                (self.music_slider.value.ln_1p() / 1f32.ln_1p()).powf(3.0).clamp(0.0, 1.0)
+            };
             audio::set_volume("loop", volume);
         }
     }
@@ -101,7 +106,7 @@ impl GameManager {
             rect!( 
                 fixed = true,
                 xy = self.menu_bounds.xy(),
-                wh = self.menu_bounds.wh(),
+                wh = (self.menu_bounds.w(), 58),
                 border_size = 1,
                 border_radius = 2,
                 color = 0x1f122bff,
@@ -119,13 +124,13 @@ impl GameManager {
             //     fixed = true,
             //     xy = (self.sfx_toggle.bounds.x() + self.sfx_toggle.bounds.w() as i32 + 6, self.sfx_toggle.bounds.center_y() - 4),
             // );
-            self.autosave_toggle.draw();
-            text!(
-                "AUTOSAVE",
-                fixed = true,
-                xy = (self.autosave_toggle.bounds.x() + self.autosave_toggle.bounds.w() as i32 + 6, self.autosave_toggle.bounds.center_y() - 4),
-            );
-            self.save_button.draw();
+            // self.autosave_toggle.draw();
+            // text!(
+            //     "AUTOSAVE",
+            //     fixed = true,
+            //     xy = (self.autosave_toggle.bounds.x() + self.autosave_toggle.bounds.w() as i32 + 6, self.autosave_toggle.bounds.center_y() - 4),
+            // );
+            // self.save_button.draw();
             self.reset_button.draw();
         }
         if self.info {

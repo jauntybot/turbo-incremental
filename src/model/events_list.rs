@@ -5,7 +5,10 @@ pub static CS_INTRO: Lazy<Dialogue> = Lazy::new(|| Dialogue {
     messages: vec![
         "EXOPLANET detected!".to_string(),
         "Sending autonomous RESEARCH PROBE to EXOPLANET...".to_string(),
-        "Scan the EXOPLANET to gather scientific RESEARCH.  ".to_string(),
+        //"Scan the EXOPLANET to gather scientific RESEARCH.  ".to_string(),
+        "Click and drag the screen or use arrow keys to move the RESEARCH PROBE.".to_string(),
+        //"Hover over points of interest to inspect and upgrade them.".to_string(),
+        "Click or hold the EXOPLANET to begin scanning and producing scientific RESEARCH.".to_string(),
     ],
     camera_pos: vec![((320, 200), 0), ((320, 256), 2)],
     d_box: DialogueBox::new(),

@@ -6,6 +6,9 @@ pub use btn::*;
 mod numbers;
 pub use numbers::*;
 
+mod objective; 
+pub use objective::*;
+
 mod pop_up;
 pub use pop_up::*;
 

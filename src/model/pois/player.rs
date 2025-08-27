@@ -191,11 +191,11 @@ impl Player {
             // event_manager.trigger(Event::FabricatorUnlockable);
             // event_manager.trigger(Event::AmpUnlockable);
             self.resources.clear();
-            self.resources.push((Resources::Prestige, 6));
-            self.resources.push((Resources::Research, 4000));
-            self.resources.push((Resources::Drones, 40));
-            self.resources.push((Resources::Metals, 4000));
-            self.resources.push((Resources::Power, 4000));
+            self.resources.push((Resources::Prestige, 60));
+            self.resources.push((Resources::Research, 400000));
+            self.resources.push((Resources::Drones, 400));
+            self.resources.push((Resources::Metals, 400000));
+            self.resources.push((Resources::Power, 400000));
 
             //event_manager.trigger(Event::Simulacrum);
         }

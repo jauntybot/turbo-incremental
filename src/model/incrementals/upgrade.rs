@@ -156,7 +156,9 @@ impl Upgrade {
                 buyable = true;
                 let mut has_resources = true;
                 for cost in self.cost.iter() {
-                    if resources.len() == 0 {
+                    if cost.0 == Resources::Ad {
+                        buyable = cost.1 <= 0;
+                    } else if resources.len() == 0 {
                         buyable = false;
                     } else {
                         let mut found = false;
@@ -229,11 +231,21 @@ impl Upgrade {
         }
 
         let mut i = 0;
+        let mut o = 0;
         for (resource, amount) in self.cost.iter() {
             let sprite = format!("{}", resource);
             sprite!(&sprite, fixed = true, x = self.entry.bounds.right() - 58, y = i * 20 + self.entry.bounds.y() + 2, wh = (16, 16), color = 0xffffffff);
-            let abbr = Numbers::format(amount.clone());
-            text!("{}", abbr; fixed = true, x = self.entry.bounds.right() as i32 - 38, y = i * 20 + self.entry.bounds.y() + 6);
+            let abbr = if resource != &Resources::Ad { 
+                Numbers::format(amount.clone())
+            } else {
+                if amount == &0 {
+                    o = 3;
+                    "WATCH AD".to_string()
+                } else {
+                    Numbers::time(amount.clone())
+                }
+            };
+            text!("{}", abbr; fixed = true, x = self.entry.bounds.right() as i32 - 38 - o, y = i * 20 + self.entry.bounds.y() + 6);
             i += 1;
         }
         
