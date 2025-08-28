@@ -143,7 +143,7 @@ impl GameManager {
                 color = 0x1f122bff,
                 border_color = 0xffffffff,
             );
-            let mut textbox = TextBox::new("alpha v0.2.3");
+            let mut textbox = TextBox::new("alpha v0.2.4");
             textbox.set_fixed(true);
             textbox.set_size(88, 96);
             textbox.set_position(self.menu_bounds.x() + 4, self.menu_bounds.y() + 4);

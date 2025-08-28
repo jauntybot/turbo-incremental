@@ -190,10 +190,7 @@ impl GameState {
         });
     
         if prestige {
-            let volume = self.manager.music_slider.value;
-            self.manager.music_slider.value = 0.0;
             events::emit("midgame_ad", "");
-            self.manager.music_slider.value = volume;
             *self = GameState::create(true, &mut self.player, self.manager.clone());
         }
         if reset {

@@ -231,7 +231,7 @@ pub static DEPOT_UPGRADES: Lazy<Vec<Upgrade>> = Lazy::new(|| vec![
     },
     Upgrade {
         name: "SPONSORED PAYLOAD".to_string(),
-        description: "Watch an ad to recieve 3 DRONES".to_string(),
+        description: "Watch an ad to recieve 2 DRONES".to_string(),
         cost: vec![], // vec![(Resources::Research, 120)],
         entry: Btn::new("".to_string(), Bounds::new(-320, -320, 0, 0), true, 0),
         u_type: UpgradeType::Purchase { btn: Btn::buy() },

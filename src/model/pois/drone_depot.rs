@@ -126,7 +126,7 @@ impl DroneDepot {
                     player.collect((Resources::Drones, 1));
                 } else if upgrade.name.starts_with("SPONSORED") {
                     turbo::events::emit("rewarded_ad", "");
-                    player.collect((Resources::Drones, 3));
+                    player.collect((Resources::Drones, 2));
                 }
             }
             
