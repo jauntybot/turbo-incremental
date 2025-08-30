@@ -236,7 +236,7 @@ impl POI for DroneDepot {
                 let upgrade = DEPOT_UPGRADES[6].clone().init(self.pop_up.panel, 1);
                 self.fab_upgrades.insert(1, upgrade);
             }
-        } else if upgrade.name == ("DEPLOY") {
+        } else if upgrade.name.starts_with("DEPLOY") {
             let xy = self.hitbox.translate(self.hitbox.w()/2,self.hitbox.h()/2).xy();
             self.station.deploy_drone(DroneMode::Mining, xy);
             self.fabricator.drones += 1;
